@@ -31,11 +31,7 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Baddify is running...",
-			"status":  "ok",
-		})
+		http.ServeFile(w, r, "web/index.html")
 	})
 
 	r.Post("/deploy", func(w http.ResponseWriter, r *http.Request) {
