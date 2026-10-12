@@ -30,6 +30,14 @@ func main() {
 
 	r := chi.NewRouter()
 
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Baddify is running...",
+			"status":  "ok",
+		})
+	})
+
 	r.Post("/deploy", func(w http.ResponseWriter, r *http.Request) {
 		var req DeployRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
