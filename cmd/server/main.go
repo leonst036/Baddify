@@ -31,7 +31,7 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "web/index.html")
+		http.Redirect(w, r, "http://localhost:5173", http.StatusTemporaryRedirect)
 	})
 
 	r.Post("/deploy", func(w http.ResponseWriter, r *http.Request) {
