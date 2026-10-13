@@ -16,6 +16,6 @@ if (!hasToken) {
       <AppThemeProvider>
         <App />
       </AppThemeProvider>
-    </StrictMode>,
+    </StrictMode>
   )
 }
