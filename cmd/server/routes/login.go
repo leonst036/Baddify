@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"baddify/cmd/database"
+	"baddify/pkg/auth"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -50,15 +51,26 @@ func Login(db *database.MongoManager) http.HandlerFunc {
 			return
 		}
 
+		token, err := auth.GenerateToken(user.ID.Hex(), user.Username)
+		if err != nil {
+			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			return
+		}
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
-			Value:    "authenticated",
+			Value:    token,
 			Path:     "/",
 			HttpOnly: false,
 		})
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Login successful: %s", user.Username)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"token":    token,
+			"username": user.Username,
+			"message":  fmt.Sprintf("Login successful: %s", user.Username),
+		})
 	}
 }
 
@@ -80,14 +92,25 @@ func Register(db *database.MongoManager) http.HandlerFunc {
 			return
 		}
 
+		token, err := auth.GenerateToken(user.ID.Hex(), user.Username)
+		if err != nil {
+			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			return
+		}
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
-			Value:    "authenticated",
+			Value:    token,
 			Path:     "/",
 			HttpOnly: false,
 		})
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Registration successful: %s", user.Username)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"token":    token,
+			"username": user.Username,
+			"message":  fmt.Sprintf("Registration successful: %s", user.Username),
+		})
 	}
 }

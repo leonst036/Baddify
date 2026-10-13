@@ -12,6 +12,7 @@ import (
 
 	"baddify/cmd/database"
 	"baddify/cmd/server/routes"
+	"baddify/pkg/auth"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -64,8 +65,15 @@ func TestLoginAndRegisterRoutes(t *testing.T) {
 			break
 		}
 	}
-	if tokenCookie == nil || tokenCookie.Value != "authenticated" {
-		t.Errorf("Expected token cookie to be set, got %v", tokenCookie)
+	if tokenCookie == nil {
+		t.Fatal("Expected token cookie to be set on register")
+	}
+	claims, err := auth.ValidateToken(tokenCookie.Value)
+	if err != nil {
+		t.Fatalf("Expected valid JWT token on register, got error: %v", err)
+	}
+	if claims.Username != testUser {
+		t.Errorf("Expected claim username %s, got %s", testUser, claims.Username)
 	}
 
 	// 2. Duplicate registration should return 409 Conflict
@@ -86,6 +94,24 @@ func TestLoginAndRegisterRoutes(t *testing.T) {
 
 	if loginRec.Code != http.StatusOK {
 		t.Fatalf("Expected login status 200, got %d: %s", loginRec.Code, loginRec.Body.String())
+	}
+
+	var loginTokenCookie *http.Cookie
+	for _, c := range loginRec.Result().Cookies() {
+		if c.Name == "token" {
+			loginTokenCookie = c
+			break
+		}
+	}
+	if loginTokenCookie == nil {
+		t.Fatal("Expected token cookie to be set on login")
+	}
+	loginClaims, err := auth.ValidateToken(loginTokenCookie.Value)
+	if err != nil {
+		t.Fatalf("Expected valid JWT token on login, got error: %v", err)
+	}
+	if loginClaims.Username != testUser {
+		t.Errorf("Expected claim username %s, got %s", testUser, loginClaims.Username)
 	}
 
 	// 4. Login with incorrect password should return 401 Unauthorized
