@@ -1,4 +1,4 @@
-package routes
+package tests
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"baddify/cmd/database"
+	"baddify/cmd/server/routes"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -36,7 +37,7 @@ func TestLoginAndRegisterRoutes(t *testing.T) {
 	defer teardown()
 
 	r := chi.NewRouter()
-	RegisterLoginRoutes(r, db)
+	routes.RegisterLoginRoutes(r, db)
 
 	testUser := fmt.Sprintf("user_%d", time.Now().UnixNano())
 	testPassword := "secretPassword123"
