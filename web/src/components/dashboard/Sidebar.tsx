@@ -76,7 +76,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   color: m3Tokens.onSurface,
                 }}
               >
-                Coolify Core
+                Baddify
               </Typography>
               <Typography
                 component="span"
@@ -88,7 +88,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   mt: 0.2,
                 }}
               >
-                us-east-cluster-01
+                localhost
               </Typography>
             </Box>
           </Box>
@@ -132,9 +132,8 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   height: 36,
                   borderRadius: '8px',
                   bgcolor: activeNav === 0 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${
-                    activeNav === 0 ? m3Tokens.outlineVariant : 'transparent'
-                  }`,
+                  border: `1px solid ${activeNav === 0 ? m3Tokens.outlineVariant : 'transparent'
+                    }`,
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
@@ -180,9 +179,8 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   height: 36,
                   borderRadius: '8px',
                   bgcolor: activeNav === 1 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${
-                    activeNav === 1 ? m3Tokens.outlineVariant : 'transparent'
-                  }`,
+                  border: `1px solid ${activeNav === 1 ? m3Tokens.outlineVariant : 'transparent'
+                    }`,
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
@@ -225,9 +223,8 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   height: 36,
                   borderRadius: '8px',
                   bgcolor: activeNav === 2 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${
-                    activeNav === 2 ? m3Tokens.outlineVariant : 'transparent'
-                  }`,
+                  border: `1px solid ${activeNav === 2 ? m3Tokens.outlineVariant : 'transparent'
+                    }`,
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
@@ -292,9 +289,8 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   height: 36,
                   borderRadius: '8px',
                   bgcolor: activeNav === 3 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${
-                    activeNav === 3 ? m3Tokens.outlineVariant : 'transparent'
-                  }`,
+                  border: `1px solid ${activeNav === 3 ? m3Tokens.outlineVariant : 'transparent'
+                    }`,
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
@@ -337,9 +333,8 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   height: 36,
                   borderRadius: '8px',
                   bgcolor: activeNav === 4 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${
-                    activeNav === 4 ? m3Tokens.outlineVariant : 'transparent'
-                  }`,
+                  border: `1px solid ${activeNav === 4 ? m3Tokens.outlineVariant : 'transparent'
+                    }`,
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
@@ -409,7 +404,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
               color: m3Tokens.onSurfaceVariant,
             }}
           >
-            CLUSTER TELEMETRY
+            SERVER TELEMETRY
           </Typography>
           <Typography
             component="span"
@@ -519,7 +514,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
               color: m3Tokens.onSurfaceVariant,
             }}
           >
-            v4.0.0-beta.312
+            v0.0.1-development
           </Typography>
           <Box
             sx={{

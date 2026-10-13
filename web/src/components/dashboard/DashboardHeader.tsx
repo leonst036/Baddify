@@ -43,7 +43,7 @@ export function DashboardHeader({
             m: 0,
           }}
         >
-          Control plane deployment nodes and active compute instances
+          See the status of your server
         </Typography>
       </Box>
 

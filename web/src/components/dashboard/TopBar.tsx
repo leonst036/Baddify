@@ -43,7 +43,7 @@ export function TopBar() {
               fontSize: 12,
             }}
           >
-            ENV: production
+            Overview
           </Box>
           <Typography
             component="span"
@@ -54,16 +54,6 @@ export function TopBar() {
             }}
           >
             /
-          </Typography>
-          <Typography
-            component="span"
-            sx={{
-              color: m3Tokens.onSurfaceVariant,
-              fontFamily: m3Tokens.fontCode,
-              fontSize: 12,
-            }}
-          >
-            fleet-cluster-east
           </Typography>
         </Box>
       </Box>
@@ -97,7 +87,7 @@ export function TopBar() {
               animation: 'pulse 2s infinite',
             }}
           />
-          <span>99.98% UPTIME</span>
+          <span>Not Connected - Development</span>
         </Box>
 
         <Box
