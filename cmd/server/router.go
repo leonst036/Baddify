@@ -14,6 +14,7 @@ func NewRouter(dm *docker.Manager, cr *caddy.Router) *chi.Mux {
 
 	routes.RegisterRootRoutes(r)
 	routes.RegisterDeployRoutes(r, dm, cr)
+	routes.RegisterLoginRoutes(r)
 
 	return r
 }

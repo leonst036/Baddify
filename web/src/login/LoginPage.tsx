@@ -1,0 +1,254 @@
+import { useMemo, useState } from 'react'
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Link,
+  IconButton,
+  InputAdornment,
+  useMediaQuery,
+} from '@mui/material'
+import {
+  Visibility,
+  VisibilityOff,
+  PersonOutlined,
+  LockOutlined,
+} from '@mui/icons-material'
+import { Footer } from '../components/footer/footer'
+
+export function LoginPage() {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: prefersDarkMode ? 'dark' : 'light',
+          primary: {
+            main: prefersDarkMode ? '#d0bcff' : '#6750a4',
+            contrastText: prefersDarkMode ? '#381e72' : '#ffffff',
+          },
+          background: {
+            default: prefersDarkMode ? '#141218' : '#fef7ff',
+            paper: prefersDarkMode ? '#211f26' : '#f2ecf3',
+          },
+          text: {
+            primary: prefersDarkMode ? '#e6e0e9' : '#1d1b20',
+            secondary: prefersDarkMode ? '#cac4d0' : '#494551',
+          },
+        },
+        shape: {
+          borderRadius: 8,
+        },
+        typography: {
+          fontFamily: '"Roboto Flex", "Roboto", "Helvetica", "Arial", sans-serif',
+        },
+        components: {
+          MuiCard: {
+            styleOverrides: {
+              root: {
+                borderRadius: 28,
+                boxShadow: prefersDarkMode
+                  ? '0px 1px 3px rgba(0, 0, 0, 0.45), 0px 3px 8px rgba(0, 0, 0, 0.3)'
+                  : '0px 1px 3px rgba(29, 27, 32, 0.2), 0px 2px 6px rgba(29, 27, 32, 0.1)',
+              },
+            },
+          },
+          MuiButton: {
+            styleOverrides: {
+              root: {
+                borderRadius: 9999,
+                textTransform: 'none',
+                fontWeight: 500,
+              },
+            },
+          },
+          MuiOutlinedInput: {
+            styleOverrides: {
+              root: {
+                borderRadius: 4,
+              },
+            },
+          },
+        },
+      }),
+    [prefersDarkMode],
+  )
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData()
+    formData.append('username', username)
+    formData.append('password', password)
+
+    fetch('/api/login', {
+      method: 'POST',
+      body: formData,
+    }).then((response) => {
+      if (response.ok) {
+        window.location.href = '/'
+      } else {
+        alert('Login failed')
+      }
+    })
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {/* Top App Bar */}
+        <Box
+          component="header"
+          sx={{
+            px: { xs: 2, sm: 4 },
+            py: 1.5,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography
+            component="a"
+            href="/"
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: 'primary.main',
+              textDecoration: 'none',
+            }}
+          >
+            Baddify
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ display: { xs: 'none', sm: 'inline' } }}
+            >
+              Don't have an account?
+            </Typography>
+            <Button href="#signup" color="primary" sx={{ px: 2 }}>
+              Sign Up
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Centered Login Card */}
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 2,
+          }}
+        >
+          <Card sx={{ width: '100%', maxWidth: 440, p: { xs: 1.5, sm: 2 } }}>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <Box>
+                <Typography variant="h5" component="h1" sx={{ fontWeight: 500 }} gutterBottom>
+                  Welcome back
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Please sign in to continue to Baddify.
+                </Typography>
+              </Box>
+
+              <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  id="username"
+                  name="username"
+                  label="Username or Email"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonOutlined color="action" />
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  id="password"
+                  name="password"
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockOutlined color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            edge="end"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label={<Typography variant="body2" color="text.secondary">Remember me</Typography>}
+                  />
+                  <Link href="#forgot-password" variant="body2" color="primary" underline="hover">
+                    Forgot password?
+                  </Link>
+                </Box>
+
+                <Button type="submit" variant="contained" size="large" fullWidth sx={{ py: 1.25 }}>
+                  Login
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Footer />
+      </Box>
+    </ThemeProvider>
+  )
+}
+
+export default LoginPage
