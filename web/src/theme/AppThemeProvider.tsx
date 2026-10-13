@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from '@mui/material'
 
-export function createAppTheme(isDarkMode: boolean) {
+function createAppTheme(isDarkMode: boolean) {
   return createTheme({
     palette: {
       mode: isDarkMode ? 'dark' : 'light',

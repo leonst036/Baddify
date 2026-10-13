@@ -17,6 +17,12 @@ export default defineConfig({
           if (req.url === '/login') {
             req.url = '/login/'
           }
+          if (req.url === '/register' || req.url === '/register/') {
+            _res.statusCode = 302
+            _res.setHeader('Location', '/login/#signup')
+            _res.end()
+            return
+          }
           next()
         })
       },

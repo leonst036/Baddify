@@ -20,7 +20,11 @@ import {
 } from '@mui/icons-material'
 import { Footer } from '../components/footer/footer'
 
-export function LoginPage() {
+interface LoginPageProps {
+  onNavigateToRegister?: () => void
+}
+
+export function LoginPage({ onNavigateToRegister }: LoginPageProps = {}) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -76,7 +80,17 @@ export function LoginPage() {
           >
             Don't have an account?
           </Typography>
-          <Button href="#signup" color="primary" sx={{ px: 2 }}>
+          <Button
+            href="#signup"
+            color="primary"
+            sx={{ px: 2 }}
+            onClick={(e) => {
+              if (onNavigateToRegister) {
+                e.preventDefault()
+                onNavigateToRegister()
+              }
+            }}
+          >
             Sign Up
           </Button>
         </Box>
@@ -176,6 +190,26 @@ export function LoginPage() {
               <Button type="submit" variant="contained" size="large" fullWidth sx={{ py: 1.25 }}>
                 Login
               </Button>
+
+              <Box sx={{ textAlign: 'center', mt: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Don't have an account?{' '}
+                  <Link
+                    href="#signup"
+                    color="primary"
+                    underline="hover"
+                    sx={{ fontWeight: 500, cursor: 'pointer' }}
+                    onClick={(e) => {
+                      if (onNavigateToRegister) {
+                        e.preventDefault()
+                        onNavigateToRegister()
+                      }
+                    }}
+                  >
+                    Sign up
+                  </Link>
+                </Typography>
+              </Box>
             </Box>
           </CardContent>
         </Card>

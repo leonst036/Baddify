@@ -9,6 +9,7 @@ import (
 
 func RegisterLoginRoutes(r chi.Router) {
 	r.Post("/api/login", Login)
+	r.Post("/api/register", Register)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -34,5 +35,26 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+	return
+}
+
+func Register(w http.ResponseWriter, r *http.Request) {
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	if username == "" || password == "" {
+		http.Error(w, "Missing username or password", http.StatusBadRequest)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    "authenticated",
+		Path:     "/",
+		HttpOnly: false,
+	})
+	fmt.Println("Registration successful")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Registration successful"))
 	return
 }
