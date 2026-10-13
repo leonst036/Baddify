@@ -1,37 +1,44 @@
 import { useMemo, type ReactNode } from 'react'
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from '@mui/material'
 
+import { m3Tokens } from './m3Tokens'
+
 function createAppTheme(isDarkMode: boolean) {
   return createTheme({
     palette: {
       mode: isDarkMode ? 'dark' : 'light',
       primary: {
-        main: isDarkMode ? '#d0bcff' : '#6750a4',
-        contrastText: isDarkMode ? '#381e72' : '#ffffff',
+        main: isDarkMode ? m3Tokens.primary : '#6750a4',
+        contrastText: isDarkMode ? m3Tokens.onPrimary : '#ffffff',
+      },
+      secondary: {
+        main: isDarkMode ? m3Tokens.secondary : '#625b71',
       },
       background: {
-        default: isDarkMode ? '#141218' : '#fef7ff',
-        paper: isDarkMode ? '#211f26' : '#f2ecf3',
+        default: isDarkMode ? m3Tokens.background : '#fef7ff',
+        paper: isDarkMode ? m3Tokens.surfaceContainer : '#f2ecf3',
       },
       text: {
-        primary: isDarkMode ? '#e6e0e9' : '#1d1b20',
-        secondary: isDarkMode ? '#cac4d0' : '#494551',
+        primary: isDarkMode ? m3Tokens.onSurface : '#1d1b20',
+        secondary: isDarkMode ? m3Tokens.onSurfaceVariant : '#494551',
       },
     },
     shape: {
       borderRadius: 8,
     },
     typography: {
-      fontFamily: '"Roboto Flex", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontFamily: m3Tokens.fontSans,
     },
     components: {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 28,
+            borderRadius: m3Tokens.cardRadius,
             boxShadow: isDarkMode
-              ? '0px 1px 3px rgba(0, 0, 0, 0.45), 0px 3px 8px rgba(0, 0, 0, 0.3)'
+              ? m3Tokens.cardShadow
               : '0px 1px 3px rgba(29, 27, 32, 0.2), 0px 2px 6px rgba(29, 27, 32, 0.1)',
+            backgroundColor: isDarkMode ? m3Tokens.surfaceContainer : '#ffffff',
+            border: `1px solid ${m3Tokens.outlineVariant}`,
           },
         },
       },
@@ -48,6 +55,25 @@ function createAppTheme(isDarkMode: boolean) {
         styleOverrides: {
           root: {
             borderRadius: 4,
+          },
+        },
+      },
+      MuiLinearProgress: {
+        styleOverrides: {
+          root: {
+            borderRadius: 9999,
+            backgroundColor: m3Tokens.surfaceContainerHigh,
+          },
+          bar: {
+            borderRadius: 9999,
+            backgroundColor: m3Tokens.primary,
+          },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: {
+            borderRadius: 9999,
           },
         },
       },

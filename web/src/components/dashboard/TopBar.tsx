@@ -1,0 +1,162 @@
+import { Box, Typography, IconButton, Tooltip } from '@mui/material'
+import { NotificationsNone as NotificationsIcon } from '@mui/icons-material'
+import { m3Tokens } from '../../theme/m3Tokens'
+
+export function TopBar() {
+  return (
+    <Box
+      component="header"
+      sx={{
+        height: 64,
+        bgcolor: 'rgba(29, 27, 33, 0.7)',
+        backdropFilter: 'blur(10px)',
+        borderBottom: `1px solid ${m3Tokens.outlineVariant}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        px: 3,
+        flexShrink: 0,
+        zIndex: 30,
+      }}
+    >
+      {/* Left: Context Badge & Identifier Slot */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            fontFamily: m3Tokens.fontCode,
+            fontSize: 12,
+          }}
+        >
+          <Box
+            component="span"
+            sx={{
+              px: 1.5,
+              py: 0.5,
+              borderRadius: '4px',
+              bgcolor: m3Tokens.surfaceContainer,
+              border: `1px solid ${m3Tokens.outlineVariant}`,
+              color: m3Tokens.onSurface,
+              fontFamily: m3Tokens.fontCode,
+              fontSize: 12,
+            }}
+          >
+            ENV: production
+          </Box>
+          <Typography
+            component="span"
+            sx={{
+              color: m3Tokens.outlineVariant,
+              fontFamily: m3Tokens.fontCode,
+              fontSize: 12,
+            }}
+          >
+            /
+          </Typography>
+          <Typography
+            component="span"
+            sx={{
+              color: m3Tokens.onSurfaceVariant,
+              fontFamily: m3Tokens.fontCode,
+              fontSize: 12,
+            }}
+          >
+            fleet-cluster-east
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Right: Utility Frames & Status Node */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {/* Status Indicator Pill */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1.75,
+            py: 0.75,
+            borderRadius: 9999,
+            bgcolor: m3Tokens.surfaceContainer,
+            border: `1px solid ${m3Tokens.outlineVariant}`,
+            color: m3Tokens.primary,
+            fontFamily: m3Tokens.fontCode,
+            fontSize: 11,
+            fontWeight: 500,
+            letterSpacing: '0.04em',
+          }}
+        >
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              bgcolor: m3Tokens.primary,
+              animation: 'pulse 2s infinite',
+            }}
+          />
+          <span>99.98% UPTIME</span>
+        </Box>
+
+        <Box
+          sx={{
+            height: 20,
+            width: '1px',
+            bgcolor: m3Tokens.outlineVariant,
+          }}
+        />
+
+        {/* Action Buttons */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Tooltip title="Notifications" arrow>
+            <IconButton
+              size="small"
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                bgcolor: m3Tokens.surfaceContainer,
+                border: `1px solid ${m3Tokens.outlineVariant}`,
+                color: m3Tokens.onSurfaceVariant,
+                '&:hover': {
+                  bgcolor: m3Tokens.surfaceContainerHigh,
+                },
+              }}
+            >
+              <NotificationsIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Cluster Admin" arrow>
+            <IconButton
+              size="small"
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                bgcolor: m3Tokens.surfaceContainer,
+                border: `1px solid ${m3Tokens.outlineVariant}`,
+                '&:hover': {
+                  bgcolor: m3Tokens.surfaceContainerHigh,
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  bgcolor: m3Tokens.primary,
+                }}
+              />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+    </Box>
+  )
+}
+
+export default TopBar

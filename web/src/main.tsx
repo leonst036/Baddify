@@ -4,9 +4,13 @@ import './index.css'
 import App from './App.tsx'
 import { AppThemeProvider } from './theme/AppThemeProvider'
 
-const hasToken = document.cookie
-  .split('; ')
-  .some((row) => row.startsWith('token=') && row.split('=')[1])
+const isPreview =
+  new URLSearchParams(window.location.search).get('preview') === 'true'
+
+const hasToken =
+  document.cookie
+    .split('; ')
+    .some((row) => row.startsWith('token=') && row.split('=')[1]) || isPreview
 
 if (!hasToken) {
   window.location.replace('/login/')

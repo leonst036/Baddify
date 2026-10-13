@@ -1,14 +1,7 @@
-import { Footer } from './components/footer/footer'
+import { ControlPlaneDashboard } from './components/dashboard/ControlPlaneDashboard'
 
 function App() {
-  return (
-    <>
-      <main>
-        <h1>Hello World</h1>
-      </main>
-      <Footer />
-    </>
-  )
+  return <ControlPlaneDashboard />
 }
 
 export default App
