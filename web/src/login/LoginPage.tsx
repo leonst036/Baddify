@@ -1,8 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
   Box,
   Card,
   CardContent,
@@ -14,7 +11,6 @@ import {
   Link,
   IconButton,
   InputAdornment,
-  useMediaQuery,
 } from '@mui/material'
 import {
   Visibility,
@@ -25,68 +21,10 @@ import {
 import { Footer } from '../components/footer/footer'
 
 export function LoginPage() {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: prefersDarkMode ? 'dark' : 'light',
-          primary: {
-            main: prefersDarkMode ? '#d0bcff' : '#6750a4',
-            contrastText: prefersDarkMode ? '#381e72' : '#ffffff',
-          },
-          background: {
-            default: prefersDarkMode ? '#141218' : '#fef7ff',
-            paper: prefersDarkMode ? '#211f26' : '#f2ecf3',
-          },
-          text: {
-            primary: prefersDarkMode ? '#e6e0e9' : '#1d1b20',
-            secondary: prefersDarkMode ? '#cac4d0' : '#494551',
-          },
-        },
-        shape: {
-          borderRadius: 8,
-        },
-        typography: {
-          fontFamily: '"Roboto Flex", "Roboto", "Helvetica", "Arial", sans-serif',
-        },
-        components: {
-          MuiCard: {
-            styleOverrides: {
-              root: {
-                borderRadius: 28,
-                boxShadow: prefersDarkMode
-                  ? '0px 1px 3px rgba(0, 0, 0, 0.45), 0px 3px 8px rgba(0, 0, 0, 0.3)'
-                  : '0px 1px 3px rgba(29, 27, 32, 0.2), 0px 2px 6px rgba(29, 27, 32, 0.1)',
-              },
-            },
-          },
-          MuiButton: {
-            styleOverrides: {
-              root: {
-                borderRadius: 9999,
-                textTransform: 'none',
-                fontWeight: 500,
-              },
-            },
-          },
-          MuiOutlinedInput: {
-            styleOverrides: {
-              root: {
-                borderRadius: 4,
-              },
-            },
-          },
-        },
-      }),
-    [prefersDarkMode],
-  )
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData()
@@ -106,9 +44,7 @@ export function LoginPage() {
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Top App Bar */}
         <Box
           component="header"
@@ -247,7 +183,6 @@ export function LoginPage() {
 
         <Footer />
       </Box>
-    </ThemeProvider>
   )
 }
 
