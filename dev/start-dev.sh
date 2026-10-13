@@ -2,7 +2,7 @@
 set -e
 
 # Change to project root directory
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 # Verify Docker daemon is running
 if ! docker info >/dev/null 2>&1; then

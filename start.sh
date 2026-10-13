@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec "$(dirname "$0")/start-dev.sh" "$@"
+exec "$(dirname "$0")/dev/start-dev.sh" "$@"
