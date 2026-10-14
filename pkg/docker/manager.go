@@ -58,3 +58,18 @@ func (m *Manager) RunContainer(ctx context.Context, imgName, containerName, host
 	err = m.cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
 	return resp.ID, err
 }
+
+// GetContainerCounts returns the count of running and total containers.
+func (m *Manager) GetContainerCounts(ctx context.Context) (int, int, error) {
+	containers, err := m.cli.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		return 0, 0, err
+	}
+	running := 0
+	for _, c := range containers {
+		if c.State == "running" {
+			running++
+		}
+	}
+	return running, len(containers), nil
+}

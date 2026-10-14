@@ -33,6 +33,12 @@ interface DiskIOResponse {
   total_write_bytes: number
 }
 
+interface InstancesInfoResponse {
+  running: number
+  total: number
+  stopped: number
+}
+
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 GB'
   const gb = bytes / (1024 * 1024 * 1024)
@@ -314,9 +320,11 @@ export function MetricsGrid() {
   const [cpuData, setCpuData] = useState<CPUInfoResponse | null>(null)
   const [ramData, setRamData] = useState<RAMInfoResponse | null>(null)
   const [diskData, setDiskData] = useState<DiskIOResponse | null>(null)
+  const [instancesData, setInstancesData] = useState<InstancesInfoResponse | null>(null)
   const [hasCpuError, setHasCpuError] = useState(false)
   const [hasRamError, setHasRamError] = useState(false)
   const [hasDiskError, setHasDiskError] = useState(false)
+  const [hasInstancesError, setHasInstancesError] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -391,7 +399,28 @@ export function MetricsGrid() {
         }
       }
 
-      await Promise.all([fetchCpu(), fetchRam(), fetchDisk()])
+      const fetchInstances = async () => {
+        try {
+          const res = await fetch('/api/instances', {
+            headers,
+            credentials: 'include',
+          })
+          if (!res.ok) {
+            throw new Error('Failed to fetch Instances metrics')
+          }
+          const data: InstancesInfoResponse = await res.json()
+          if (isMounted) {
+            setInstancesData(data)
+            setHasInstancesError(false)
+          }
+        } catch {
+          if (isMounted) {
+            setHasInstancesError(true)
+          }
+        }
+      }
+
+      await Promise.all([fetchCpu(), fetchRam(), fetchDisk(), fetchInstances()])
     }
 
     fetchMetrics()
@@ -402,6 +431,32 @@ export function MetricsGrid() {
       clearInterval(interval)
     }
   }, [])
+
+  const instancesStatus = hasInstancesError && !instancesData
+    ? 'ERROR'
+    : instancesData
+      ? instancesData.total === 0
+        ? 'NO INSTANCES'
+        : instancesData.running === instancesData.total
+          ? 'READY'
+          : `${instancesData.stopped} STOPPED`
+      : 'LOADING...'
+
+  const instancesStatusColor = hasInstancesError && !instancesData
+    ? m3Tokens.error
+    : instancesData && instancesData.stopped > 0
+      ? m3Tokens.secondary
+      : m3Tokens.primary
+
+  const instancesValue = instancesData
+    ? `${instancesData.running} / ${instancesData.total}`
+    : hasInstancesError
+      ? 'N/A'
+      : '-- / --'
+
+  const instancesProgress = instancesData && instancesData.total > 0
+    ? Math.min(100, Math.max(0, (instancesData.running / instancesData.total) * 100))
+    : 0
 
   const cpuStatus = hasCpuError && !cpuData
     ? 'ERROR'
@@ -476,10 +531,10 @@ export function MetricsGrid() {
     >
       <MetricCard
         title="ACTIVE INSTANCES"
-        status="READY"
-        statusColor={m3Tokens.primary}
-        value="12 / 12"
-        progress={100}
+        status={instancesStatus}
+        statusColor={instancesStatusColor}
+        value={instancesValue}
+        progress={instancesProgress}
       />
       <MetricCard
         title="CPU LOAD"

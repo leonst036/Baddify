@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"baddify/pkg/docker"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -37,18 +39,25 @@ type DiskIOResponse struct {
 	TotalWriteBytes  uint64  `json:"total_write_bytes"`
 }
 
+type InstancesInfoResponse struct {
+	Running int `json:"running"`
+	Total   int `json:"total"`
+	Stopped int `json:"stopped"`
+}
+
 var (
 	cachedCPU  atomic.Pointer[CPUInfoResponse]
 	cachedDisk atomic.Pointer[DiskIOResponse]
 	startOnce  sync.Once
 )
 
-func RegisterAboutServerRoutes(r chi.Router) {
+func RegisterAboutServerRoutes(r chi.Router, dm *docker.Manager) {
 	startSystemMonitor()
 	r.Get("/api/cpu", AboutServerCPU)
 	r.Get("/api/ram", AboutServerRAM)
 	r.Get("/api/disk-io", AboutServerDiskIO)
 	r.Get("/api/disk", AboutServerDiskIO)
+	r.Get("/api/instances", AboutServerInstances(dm))
 }
 
 func startSystemMonitor() {
@@ -169,6 +178,33 @@ func AboutServerDiskIO(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
+	}
+}
+
+func AboutServerInstances(dm *docker.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if dm == nil {
+			http.Error(w, "Docker manager not configured", http.StatusServiceUnavailable)
+			return
+		}
+
+		running, total, err := dm.GetContainerCounts(r.Context())
+		if err != nil {
+			http.Error(w, "Error getting container info: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		res := InstancesInfoResponse{
+			Running: running,
+			Total:   total,
+			Stopped: total - running,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(res); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
