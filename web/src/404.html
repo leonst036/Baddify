@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>404 - Resource not found</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#ccc2dc",
+                        "tertiary-fixed": "#ffd9e3",
+                        "on-primary-fixed-variant": "#4d3d76",
+                        "inverse-on-surface": "#322f36",
+                        "primary": "#e9ddff",
+                        "surface-container": "#211f25",
+                        "tertiary-container": "#efb8c8",
+                        "on-background": "#e7e0e9",
+                        "background": "#141218",
+                        "primary-container": "#d0bcff",
+                        "on-error-container": "#ffdad6",
+                        "on-primary": "#37265e",
+                        "surface-container-lowest": "#0f0d13",
+                        "tertiary": "#ffd9e3",
+                        "on-surface": "#e7e0e9",
+                        "on-primary-container": "#594983",
+                        "surface-container-highest": "#36343a",
+                        "on-secondary-fixed": "#1e182b",
+                        "on-secondary-container": "#bab1ca",
+                        "inverse-surface": "#e7e0e9",
+                        "surface-container-high": "#2b292f",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "on-secondary": "#332d41",
+                        "surface-bright": "#3b383f",
+                        "on-tertiary": "#492532",
+                        "on-tertiary-fixed": "#31111d",
+                        "on-primary-fixed": "#210f48",
+                        "primary-fixed": "#e9ddff",
+                        "on-secondary-fixed-variant": "#4a4359",
+                        "inverse-primary": "#665590",
+                        "tertiary-fixed-dim": "#efb8c8",
+                        "outline": "#948f9a",
+                        "secondary-fixed-dim": "#ccc2dc",
+                        "secondary-fixed": "#e9def9",
+                        "surface": "#141218",
+                        "on-tertiary-fixed-variant": "#633b48",
+                        "outline-variant": "#49454f",
+                        "primary-fixed-dim": "#d0bcff",
+                        "surface-variant": "#36343a",
+                        "surface-tint": "#d0bcff",
+                        "secondary-container": "#4a4359",
+                        "error-container": "#93000a",
+                        "surface-dim": "#141218",
+                        "surface-container-low": "#1d1b21",
+                        "on-tertiary-container": "#704654",
+                        "on-surface-variant": "#cac4d0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "card": "28px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "space-lg": "1.5rem",
+                        "margin": "1rem",
+                        "gutter-tablet": "1.5rem",
+                        "space-md": "1rem",
+                        "margin-tablet": "1.5rem",
+                        "margin-desktop": "2rem",
+                        "space-xs": "0.25rem",
+                        "space-xl": "2rem",
+                        "gutter-desktop": "1.5rem",
+                        "space-sm": "0.5rem",
+                        "gutter": "1rem"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Roboto Flex"],
+                        "headline-sm": ["Roboto Flex"],
+                        "body-lg": ["Roboto Flex"],
+                        "body-md": ["Roboto Flex"],
+                        "label-lg": ["Roboto Flex"],
+                        "title-lg": ["Roboto Flex"],
+                        "headline-lg-mobile": ["Roboto Flex"],
+                        "title-sm": ["Roboto Flex"],
+                        "display-lg": ["Roboto Flex"],
+                        "title-md": ["Roboto Flex"],
+                        "headline-md": ["Roboto Flex"],
+                        "headline-lg": ["Roboto Flex"],
+                        "label-md": ["Roboto Flex"],
+                        "body-sm": ["Roboto Flex"],
+                        "display-md": ["Roboto Flex"],
+                        "display-sm": ["Roboto Flex"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500" }],
+                        "headline-sm": ["24px", { "lineHeight": "32px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "0.5px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.25px", "fontWeight": "400" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500" }],
+                        "title-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "title-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500" }],
+                        "display-lg": ["57px", { "lineHeight": "64px", "letterSpacing": "-0.25px", "fontWeight": "400" }],
+                        "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0.15px", "fontWeight": "500" }],
+                        "headline-md": ["28px", { "lineHeight": "36px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.4px", "fontWeight": "400" }],
+                        "display-md": ["45px", { "lineHeight": "52px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "display-sm": ["36px", { "lineHeight": "44px", "letterSpacing": "0px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 1;
+        }
+
+        .m3-elevation-1 {
+            box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.45), 0px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .m3-elevation-2 {
+            box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.45), 0px 3px 8px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background text-on-surface min-h-screen flex flex-col justify-between selection:bg-primary-container selection:text-on-primary-container font-body-md text-body-md antialiased">
+
+
+    <main class="flex-grow flex items-center justify-center px-space-md md:px-margin-desktop py-space-xl">
+        <div class="w-full max-w-4xl mx-auto flex flex-col items-center text-center">
+
+            <div class="relative mb-2">
+                <div
+                    class="absolute -inset-6 bg-primary-container opacity-10 blur-3xl rounded-full pointer-events-none">
+                </div>
+                <h1
+                    class="relative text-8xl md:text-9xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-primary to-primary-container select-none drop-shadow-sm">
+                    404
+                </h1>
+            </div>
+
+            <div
+                class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-error-container/40 text-error font-label-sm text-label-sm mb-space-md border border-error/20">
+                <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">error</span>
+                <span class="">ERR_INGRESS_ROUTER_TARGET_NOT_FOUND</span>
+            </div>
+            <h2 class="text-headline-lg font-headline-lg text-on-surface font-semibold max-w-xl mb-space-sm">
+                Resource not found
+            </h2>
+            <p class="text-body-lg font-body-lg text-on-surface-variant max-w-2xl mb-space-lg leading-relaxed">
+                I'm sorry, but I couldn't find the resource you're looking for. <br> Forgive Me! </br>
+            </p>
+            <!-- Action Buttons Row -->
+            <div class="flex flex-wrap items-center justify-center gap-space-md mb-space-xl">
+                <!-- Primary Pill Button -->
+                <a class="inline-flex items-center justify-center gap-space-sm h-10 px-space-lg rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg hover:brightness-110 active:opacity-80 transition-all duration-150 m3-elevation-1"
+                    href="/">
+                    <span class="material-symbols-outlined text-lg"
+                        style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                    <span class="">Back to Dashboard</span>
+                </a>
+                <!-- Outlined Secondary Pill Button -->
+                <a class="inline-flex items-center justify-center gap-space-sm h-10 px-space-lg rounded-full border border-outline text-primary font-label-lg text-label-lg hover:bg-surface-container-high active:opacity-80 transition-all duration-150"
+                    href="#">
+                    <span class="material-symbols-outlined text-lg">menu_book</span>
+                    <span class="">Documentation</span>
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('copy-btn')?.addEventListener('click', () => {
+            const traceText = document.getElementById('trace-id-value')?.textContent?.trim() || '';
+            if (traceText) {
+                navigator.clipboard.writeText(traceText).then(() => {
+                    const textEl = document.getElementById('copy-text');
+                    const iconEl = document.getElementById('copy-icon');
+                    if (textEl) textEl.textContent = 'Trace ID kopiert!';
+                    if (iconEl) iconEl.textContent = 'check';
+                    setTimeout(() => {
+                        if (textEl) textEl.textContent = 'Trace ID kopieren';
+                        if (iconEl) iconEl.textContent = 'content_copy';
+                    }, 2000);
+                }).catch(() => { });
+            }
+        });
+    </script>
+</body>
+
+</html>

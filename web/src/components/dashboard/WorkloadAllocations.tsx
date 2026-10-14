@@ -130,6 +130,9 @@ export function WorkloadAllocations() {
         border: `1px solid ${m3Tokens.outlineVariant}`,
         boxShadow: m3Tokens.cardShadow,
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        height: 427,
       }}
     >
       {/* Header bar */}
@@ -144,6 +147,7 @@ export function WorkloadAllocations() {
           bgcolor: 'rgba(33, 31, 38, 0.6)',
           flexWrap: 'wrap',
           gap: 1.5,
+          flexShrink: 0,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
@@ -238,7 +242,33 @@ export function WorkloadAllocations() {
       </Box>
 
       {/* Container list body */}
-      <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box
+        sx={{
+          p: 2.5,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1.5,
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          scrollbarWidth: 'thin',
+          scrollbarColor: `${m3Tokens.outlineVariant} transparent`,
+          '&::-webkit-scrollbar': {
+            width: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            bgcolor: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            bgcolor: m3Tokens.outlineVariant,
+            borderRadius: '9999px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            bgcolor: m3Tokens.outline,
+          },
+        }}
+      >
         {loading ? (
           <>
             <Skeleton variant="rounded" height={68} sx={{ bgcolor: m3Tokens.surfaceContainerHigh }} />

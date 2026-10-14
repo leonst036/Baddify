@@ -11,7 +11,6 @@ import {
 } from '@mui/material'
 import {
   AccessTime as AccessTimeIcon,
-  CheckCircle as CheckCircleIcon,
   Dns as DnsIcon,
   Memory as MemoryIcon,
   Refresh as RefreshIcon,
@@ -134,22 +133,6 @@ export function NodeDetails() {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Chip
-            size="small"
-            icon={<CheckCircleIcon sx={{ fontSize: '13px !important', color: '#81c784' }} />}
-            label={nodeInfo ? (nodeInfo.docker_status === 'Online' ? 'ONLINE' : 'DEGRADED') : 'SYNCING'}
-            sx={{
-              height: 22,
-              fontSize: 10,
-              fontFamily: m3Tokens.fontCode,
-              letterSpacing: '0.04em',
-              fontWeight: 600,
-              bgcolor: 'rgba(129, 199, 132, 0.12)',
-              color: '#81c784',
-              border: '1px solid rgba(129, 199, 132, 0.25)',
-              '& .MuiChip-label': { px: 0.8 },
-            }}
-          />
           <Tooltip title="Refresh node info">
             <span>
               <IconButton
