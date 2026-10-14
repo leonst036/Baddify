@@ -3,6 +3,7 @@ package main
 import (
 	"baddify/cmd/database"
 	"baddify/cmd/server/routes"
+	"baddify/pkg/auth"
 	"baddify/pkg/caddy"
 	"baddify/pkg/docker"
 
@@ -12,6 +13,12 @@ import (
 // NewRouter initializes Chi router and registers all application routes.
 func NewRouter(dm *docker.Manager, cr *caddy.Router, db *database.MongoManager) *chi.Mux {
 	r := chi.NewRouter()
+
+	r.Use(auth.RequireTokenIfNotProxied(
+		"/",
+		"/api/login",
+		"/api/register",
+	))
 
 	routes.RegisterRootRoutes(r)
 	routes.RegisterDeployRoutes(r, dm, cr)

@@ -4,17 +4,43 @@ import './index.css'
 import App from './App.tsx'
 import { AppThemeProvider } from './theme/AppThemeProvider'
 
-const isPreview =
-  new URLSearchParams(window.location.search).get('preview') === 'true'
-
-const hasToken =
-  document.cookie
+function getCookieToken(): string | null {
+  const cookieRow = document.cookie
     .split('; ')
-    .some((row) => row.startsWith('token=') && row.split('=')[1]) || isPreview
+    .find((row) => row.startsWith('token='))
+  if (!cookieRow) return null
+  const token = cookieRow.split('=')[1]
+  return token ? decodeURIComponent(token) : null
+}
 
-if (!hasToken) {
-  window.location.replace('/login/')
-} else {
+function clearTokenCookie() {
+  document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+}
+
+async function startApp() {
+  const token = getCookieToken()
+  if (!token) {
+    window.location.replace('/login/')
+    return
+  }
+
+  try {
+    const res = await fetch('/api/verify', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    if (!res.ok) {
+      clearTokenCookie()
+      window.location.replace('/login/')
+      return
+    }
+  } catch {
+    clearTokenCookie()
+    window.location.replace('/login/')
+    return
+  }
+
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <AppThemeProvider>
@@ -23,3 +49,5 @@ if (!hasToken) {
     </StrictMode>
   )
 }
+
+startApp()

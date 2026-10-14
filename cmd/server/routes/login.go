@@ -16,6 +16,28 @@ import (
 func RegisterLoginRoutes(r chi.Router, db *database.MongoManager) {
 	r.Post("/api/login", Login(db))
 	r.Post("/api/register", Register(db))
+	r.Get("/api/verify", Verify)
+}
+
+func Verify(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserClaims(r.Context())
+	if !ok {
+		tokenString := auth.ExtractToken(r)
+		var err error
+		claims, err = auth.ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, "Unauthorized: invalid or expired token", http.StatusUnauthorized)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"valid":    true,
+		"user_id":  claims.UserID,
+		"username": claims.Username,
+	})
 }
 
 func parseCredentials(r *http.Request) (string, string, error) {
