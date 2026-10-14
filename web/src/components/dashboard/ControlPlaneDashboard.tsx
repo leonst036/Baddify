@@ -8,8 +8,6 @@ import { MetricsGrid } from './MetricsGrid'
 import { WorkloadAllocations } from './WorkloadAllocations'
 import { ConsoleStream } from './ConsoleStream'
 import { NodeDetails } from './NodeDetails'
-import { VolumeAllocation } from './VolumeAllocation'
-
 export function ControlPlaneDashboard() {
   const [activeNav, setActiveNav] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
@@ -87,7 +85,6 @@ export function ControlPlaneDashboard() {
             {/* Right Side Panel Frame (1 Column Span) */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <NodeDetails />
-              <VolumeAllocation />
             </Box>
           </Box>
         </Box>

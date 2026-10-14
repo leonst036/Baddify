@@ -242,14 +242,18 @@ export function Sidebar({
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           {/* Structural Group A */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Box
+            <Typography
               sx={{
-                height: 12,
-                width: 64,
-                bgcolor: 'rgba(54, 52, 58, 0.6)',
-                borderRadius: '4px',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: m3Tokens.outline,
+                px: 1,
               }}
-            />
+            >
+              General
+            </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, pt: 0.5 }}>
               {/* Nav item 0 (Active) */}
               <Box
@@ -288,14 +292,17 @@ export function Sidebar({
                 >
                   <LayersIcon sx={{ fontSize: 13, color: activeNav === 0 ? m3Tokens.primary : m3Tokens.outline }} />
                 </Box>
-                <Box
+                <Typography
+                  component="span"
                   sx={{
-                    height: 10,
-                    width: 96,
-                    bgcolor: activeNav === 0 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    borderRadius: '4px',
+                    fontSize: 13,
+                    fontWeight: activeNav === 0 ? 600 : 500,
+                    color: activeNav === 0 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
+                    lineHeight: 1,
                   }}
-                />
+                >
+                  Dashboard
+                </Typography>
               </Box>
 
               {/* Nav item 1 */}
@@ -332,14 +339,17 @@ export function Sidebar({
                 >
                   <AppsIcon sx={{ fontSize: 13, color: activeNav === 1 ? m3Tokens.primary : m3Tokens.outline }} />
                 </Box>
-                <Box
+                <Typography
+                  component="span"
                   sx={{
-                    height: 10,
-                    width: 80,
-                    bgcolor: activeNav === 1 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    borderRadius: '4px',
+                    fontSize: 13,
+                    fontWeight: activeNav === 1 ? 600 : 500,
+                    color: activeNav === 1 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
+                    lineHeight: 1,
                   }}
-                />
+                >
+                  Projects
+                </Typography>
               </Box>
 
               {/* Nav item 2 */}
@@ -399,14 +409,18 @@ export function Sidebar({
 
           {/* Structural Group B */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Box
+            <Typography
               sx={{
-                height: 12,
-                width: 80,
-                bgcolor: 'rgba(54, 52, 58, 0.6)',
-                borderRadius: '4px',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: m3Tokens.outline,
+                px: 1,
               }}
-            />
+            >
+              Management
+            </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, pt: 0.5 }}>
               {/* Nav item 3 */}
               <Box
