@@ -53,6 +53,21 @@ function formatRamUsage(usedBytes: number, totalBytes: number): string {
   return `${usedMb} / ${totalMb} MB`
 }
 
+async function heartbeat(): Promise<boolean> {
+  const token = getCookieToken()
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  try {
+    const res = await fetch('/api/heartbeat', { headers, credentials: 'include' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 export function Sidebar({
   activeNav,
   onSelectNav,
@@ -62,6 +77,26 @@ export function Sidebar({
   const [internalCpuData, setInternalCpuData] = useState<CPUInfoResponse | null>(null)
   const [internalRamData, setInternalRamData] = useState<RAMInfoResponse | null>(null)
   const [hasError, setHasError] = useState(false)
+  const [isConnected, setIsConnected] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const checkHeartbeat = async () => {
+      const ok = await heartbeat()
+      if (isMounted) {
+        setIsConnected(ok)
+      }
+    }
+
+    checkHeartbeat()
+    const interval = setInterval(checkHeartbeat, 10000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     if (externalCpuData !== undefined && externalRamData !== undefined) {
@@ -220,14 +255,14 @@ export function Sidebar({
           </Box>
 
           {/* Pulsing Connected Indicator */}
-          <Tooltip title="Connected" arrow>
+          <Tooltip title={isConnected ? 'Connected' : 'Disconnected'} arrow>
             <Box
               sx={{
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                bgcolor: m3Tokens.primary,
-                boxShadow: `0 0 8px ${m3Tokens.primary}`,
+                bgcolor: isConnected ? m3Tokens.primary : m3Tokens.error,
+                boxShadow: `0 0 8px ${isConnected ? m3Tokens.primary : m3Tokens.error}`,
                 animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 '@keyframes pulse': {
                   '0%, 100%': { opacity: 1, transform: 'scale(1)' },
@@ -456,14 +491,17 @@ export function Sidebar({
                 >
                   <DnsIcon sx={{ fontSize: 13, color: activeNav === 3 ? m3Tokens.primary : m3Tokens.outline }} />
                 </Box>
-                <Box
+                <Typography
+                  component="span"
                   sx={{
-                    height: 10,
-                    width: 64,
-                    bgcolor: activeNav === 3 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    borderRadius: '4px',
+                    fontSize: 13,
+                    fontWeight: activeNav === 3 ? 600 : 500,
+                    color: activeNav === 3 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
+                    lineHeight: 1,
                   }}
-                />
+                >
+                  Servers
+                </Typography>
               </Box>
 
               {/* Nav item 4 */}

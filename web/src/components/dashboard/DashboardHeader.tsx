@@ -1,4 +1,4 @@
-import { Box, Typography, Button } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { Search as SearchIcon } from '@mui/icons-material'
 import { m3Tokens } from '../../theme/m3Tokens'
 
@@ -87,42 +87,6 @@ export function DashboardHeader({
           />
         </Box>
 
-        {/* MuiButton Primary Filled Slot */}
-        <Button
-          variant="contained"
-          sx={{
-            height: 38,
-            px: 2.5,
-            bgcolor: m3Tokens.primary,
-            color: m3Tokens.onPrimary,
-            fontWeight: 500,
-            fontSize: 14,
-            borderRadius: 9999,
-            boxShadow: m3Tokens.cardShadow,
-            textTransform: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 1,
-            transition: 'all 0.15s ease',
-            '&:hover': {
-              bgcolor: m3Tokens.primary,
-              filter: 'brightness(1.08)',
-            },
-            '&:active': {
-              transform: 'scale(0.98)',
-            },
-          }}
-        >
-          <Box
-            sx={{
-              width: 80,
-              height: 12,
-              bgcolor: 'rgba(56, 30, 114, 0.6)',
-              borderRadius: '4px',
-            }}
-          />
-        </Button>
       </Box>
     </Box>
   )

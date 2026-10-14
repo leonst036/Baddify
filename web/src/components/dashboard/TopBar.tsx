@@ -129,31 +129,6 @@ export function TopBar() {
               <NotificationsIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
-
-          <Tooltip title="Cluster Admin" arrow>
-            <IconButton
-              size="small"
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                bgcolor: m3Tokens.surfaceContainer,
-                border: `1px solid ${m3Tokens.outlineVariant}`,
-                '&:hover': {
-                  bgcolor: m3Tokens.surfaceContainerHigh,
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  bgcolor: m3Tokens.primary,
-                }}
-              />
-            </IconButton>
-          </Tooltip>
         </Box>
       </Box>
     </Box>
