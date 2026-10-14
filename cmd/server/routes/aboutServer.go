@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"runtime"
 	"strings"
@@ -14,6 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
+	"github.com/shirou/gopsutil/v4/host"
+	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
@@ -45,6 +48,26 @@ type InstancesInfoResponse struct {
 	Stopped int `json:"stopped"`
 }
 
+type NodeInfoResponse struct {
+	Hostname        string  `json:"hostname"`
+	OS              string  `json:"os"`
+	Platform        string  `json:"platform"`
+	PlatformVersion string  `json:"platform_version"`
+	KernelVersion   string  `json:"kernel_version"`
+	KernelArch      string  `json:"kernel_arch"`
+	Uptime          uint64  `json:"uptime"`
+	UptimeFormatted string  `json:"uptime_formatted"`
+	CPUModel        string  `json:"cpu_model"`
+	LogicalCores    int     `json:"logical_cores"`
+	PhysicalCores   int     `json:"physical_cores"`
+	TotalRAM        uint64  `json:"total_ram"`
+	DockerVersion   string  `json:"docker_version"`
+	DockerStatus    string  `json:"docker_status"`
+	LoadAvg1        float64 `json:"load_avg_1"`
+	LoadAvg5        float64 `json:"load_avg_5"`
+	LoadAvg15       float64 `json:"load_avg_15"`
+}
+
 var (
 	cachedCPU  atomic.Pointer[CPUInfoResponse]
 	cachedDisk atomic.Pointer[DiskIOResponse]
@@ -58,6 +81,11 @@ func RegisterAboutServerRoutes(r chi.Router, dm *docker.Manager) {
 	r.Get("/api/disk-io", AboutServerDiskIO)
 	r.Get("/api/disk", AboutServerDiskIO)
 	r.Get("/api/instances", AboutServerInstances(dm))
+	r.Get("/api/node-info", AboutServerNodeInfo(dm))
+	r.Get("/api/containers", AboutServerContainers(dm))
+	r.Post("/api/containers/{id}/start", ContainerStart(dm))
+	r.Post("/api/containers/{id}/stop", ContainerStop(dm))
+	r.Post("/api/containers/{id}/restart", ContainerRestart(dm))
 }
 
 func startSystemMonitor() {
@@ -242,4 +270,162 @@ func isDiskPartition(name string, all map[string]disk.IOCountersStat) bool {
 		}
 	}
 	return false
+}
+
+func formatUptime(seconds uint64) string {
+	days := seconds / 86400
+	hours := (seconds % 86400) / 3600
+	mins := (seconds % 3600) / 60
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm", days, hours, mins)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%dh %dm", hours, mins)
+	}
+	return fmt.Sprintf("%dm", mins)
+}
+
+func AboutServerNodeInfo(dm *docker.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		hInfo, err := host.InfoWithContext(r.Context())
+		hostname := ""
+		platform := runtime.GOOS
+		platformVer := ""
+		kernelVer := ""
+		kernelArch := runtime.GOARCH
+		var uptime uint64
+		if err == nil && hInfo != nil {
+			hostname = hInfo.Hostname
+			platform = hInfo.Platform
+			platformVer = hInfo.PlatformVersion
+			kernelVer = hInfo.KernelVersion
+			kernelArch = hInfo.KernelArch
+			uptime = hInfo.Uptime
+		}
+
+		cpuModel := ""
+		cpus, err := cpu.InfoWithContext(r.Context())
+		if err == nil && len(cpus) > 0 {
+			cpuModel = cpus[0].ModelName
+		}
+
+		logicalCores := runtime.NumCPU()
+		physicalCores, _ := cpu.Counts(false)
+		if physicalCores == 0 {
+			physicalCores = logicalCores
+		}
+
+		var totalRAM uint64
+		v, err := mem.VirtualMemoryWithContext(r.Context())
+		if err == nil && v != nil {
+			totalRAM = v.Total
+		}
+
+		load1, load5, load15 := 0.0, 0.0, 0.0
+		lAvg, err := load.AvgWithContext(r.Context())
+		if err == nil && lAvg != nil {
+			load1 = lAvg.Load1
+			load5 = lAvg.Load5
+			load15 = lAvg.Load15
+		}
+
+		dockerVer := "Not connected"
+		dockerStatus := "Offline"
+		if dm != nil {
+			dInfo, err := dm.GetDockerInfo(r.Context())
+			if err == nil && dInfo != nil {
+				dockerVer = dInfo.Version
+				dockerStatus = "Online"
+			}
+		}
+
+		res := NodeInfoResponse{
+			Hostname:        hostname,
+			OS:              runtime.GOOS,
+			Platform:        platform,
+			PlatformVersion: platformVer,
+			KernelVersion:   kernelVer,
+			KernelArch:      kernelArch,
+			Uptime:          uptime,
+			UptimeFormatted: formatUptime(uptime),
+			CPUModel:        cpuModel,
+			LogicalCores:    logicalCores,
+			PhysicalCores:   physicalCores,
+			TotalRAM:        totalRAM,
+			DockerVersion:   dockerVer,
+			DockerStatus:    dockerStatus,
+			LoadAvg1:        load1,
+			LoadAvg5:        load5,
+			LoadAvg15:       load15,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(res)
+	}
+}
+
+func AboutServerContainers(dm *docker.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if dm == nil {
+			http.Error(w, "Docker manager not configured", http.StatusServiceUnavailable)
+			return
+		}
+
+		containers, err := dm.GetContainers(r.Context())
+		if err != nil {
+			http.Error(w, "Failed to get containers: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(containers)
+	}
+}
+
+func ContainerStart(dm *docker.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if dm == nil {
+			http.Error(w, "Docker manager not configured", http.StatusServiceUnavailable)
+			return
+		}
+		id := chi.URLParam(r, "id")
+		if err := dm.StartContainer(r.Context(), id); err != nil {
+			http.Error(w, "Failed to start container: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "started", "id": id})
+	}
+}
+
+func ContainerStop(dm *docker.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if dm == nil {
+			http.Error(w, "Docker manager not configured", http.StatusServiceUnavailable)
+			return
+		}
+		id := chi.URLParam(r, "id")
+		if err := dm.StopContainer(r.Context(), id); err != nil {
+			http.Error(w, "Failed to stop container: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "stopped", "id": id})
+	}
+}
+
+func ContainerRestart(dm *docker.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if dm == nil {
+			http.Error(w, "Docker manager not configured", http.StatusServiceUnavailable)
+			return
+		}
+		id := chi.URLParam(r, "id")
+		if err := dm.RestartContainer(r.Context(), id); err != nil {
+			http.Error(w, "Failed to restart container: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "restarted", "id": id})
+	}
 }
