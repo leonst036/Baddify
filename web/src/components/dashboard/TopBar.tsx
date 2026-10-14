@@ -1,8 +1,12 @@
-import { Box, Typography, IconButton, Tooltip } from '@mui/material'
+import { Box, Typography, IconButton, Tooltip, Button } from '@mui/material'
 import { NotificationsNone as NotificationsIcon } from '@mui/icons-material'
 import { m3Tokens } from '../../theme/m3Tokens'
+import { useState } from 'react'
 
 export function TopBar() {
+
+  const [activeTab, setActiveTab] = useState('overview')
+
   return (
     <Box
       component="header"
@@ -30,21 +34,28 @@ export function TopBar() {
             fontSize: 12,
           }}
         >
-          <Box
+          <Button
             component="span"
+            onClick={() => {
+              setActiveTab('overview')
+            }}
             sx={{
               px: 1.5,
               py: 0.5,
+              minWidth: 'auto',
               borderRadius: '4px',
-              bgcolor: m3Tokens.surfaceContainer,
+              bgcolor: activeTab === 'overview' ? m3Tokens.primary : m3Tokens.surfaceContainer,
               border: `1px solid ${m3Tokens.outlineVariant}`,
-              color: m3Tokens.onSurface,
+              color: activeTab === 'overview' ? m3Tokens.onPrimary : m3Tokens.onSurface,
               fontFamily: m3Tokens.fontCode,
               fontSize: 12,
+              '&:hover': {
+                bgcolor: activeTab === 'overview' ? m3Tokens.primary : m3Tokens.surfaceContainerHigh,
+              },
             }}
           >
             Overview
-          </Box>
+          </Button>
           <Typography
             component="span"
             sx={{
