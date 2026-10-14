@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Box, Typography, Tooltip } from '@mui/material'
 import {
   Layers as LayersIcon,
@@ -8,12 +9,137 @@ import {
 } from '@mui/icons-material'
 import { m3Tokens } from '../../theme/m3Tokens'
 
+interface CPUInfoResponse {
+  logical_cores: number
+  physical_cores: number
+  overall_percent: number[]
+  usage_percent: number
+}
+
+interface RAMInfoResponse {
+  total: number
+  used: number
+  available: number
+  free: number
+  used_percent: number
+}
+
 interface SidebarProps {
   activeNav: number
   onSelectNav: (index: number) => void
+  cpuData?: CPUInfoResponse | null
+  ramData?: RAMInfoResponse | null
 }
 
-export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
+function getCookieToken(): string | null {
+  const cookieRow = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('token='))
+  if (!cookieRow) return null
+  const token = cookieRow.split('=')[1]
+  return token ? decodeURIComponent(token) : null
+}
+
+function formatRamUsage(usedBytes: number, totalBytes: number): string {
+  if (!totalBytes || totalBytes <= 0) return '-- / --'
+  const usedGb = usedBytes / (1024 * 1024 * 1024)
+  const totalGb = totalBytes / (1024 * 1024 * 1024)
+  if (totalGb >= 1) {
+    const totalStr = totalGb.toFixed(1).replace(/\.0$/, '')
+    return `${usedGb.toFixed(1)} / ${totalStr} GB`
+  }
+  const usedMb = (usedBytes / (1024 * 1024)).toFixed(0)
+  const totalMb = (totalBytes / (1024 * 1024)).toFixed(0)
+  return `${usedMb} / ${totalMb} MB`
+}
+
+export function Sidebar({
+  activeNav,
+  onSelectNav,
+  cpuData: externalCpuData,
+  ramData: externalRamData,
+}: SidebarProps) {
+  const [internalCpuData, setInternalCpuData] = useState<CPUInfoResponse | null>(null)
+  const [internalRamData, setInternalRamData] = useState<RAMInfoResponse | null>(null)
+  const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    if (externalCpuData !== undefined && externalRamData !== undefined) {
+      return
+    }
+
+    let isMounted = true
+
+    const fetchTelemetry = async () => {
+      const token = getCookieToken()
+      const headers: Record<string, string> = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      try {
+        const [cpuRes, ramRes] = await Promise.all([
+          fetch('/api/cpu', { headers, credentials: 'include' }),
+          fetch('/api/ram', { headers, credentials: 'include' }),
+        ])
+
+        if (!cpuRes.ok || !ramRes.ok) {
+          throw new Error('Failed to fetch telemetry')
+        }
+
+        const [cpu, ram] = await Promise.all([
+          cpuRes.json() as Promise<CPUInfoResponse>,
+          ramRes.json() as Promise<RAMInfoResponse>,
+        ])
+
+        if (isMounted) {
+          setInternalCpuData(cpu)
+          setInternalRamData(ram)
+          setHasError(false)
+        }
+      } catch {
+        if (isMounted) {
+          setHasError(true)
+        }
+      }
+    }
+
+    fetchTelemetry()
+    const interval = setInterval(fetchTelemetry, 5000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [externalCpuData, externalRamData])
+
+  const cpuData = externalCpuData !== undefined ? externalCpuData : internalCpuData
+  const ramData = externalRamData !== undefined ? externalRamData : internalRamData
+
+  const cpuValue = cpuData
+    ? `${cpuData.usage_percent.toFixed(1)}%`
+    : hasError
+      ? 'ERR'
+      : '--%'
+  const cpuProgress = cpuData
+    ? Math.min(100, Math.max(0, cpuData.usage_percent))
+    : 0
+
+  const ramValue = ramData
+    ? formatRamUsage(ramData.used, ramData.total)
+    : hasError
+      ? 'ERR'
+      : '-- / --'
+  const ramProgress = ramData
+    ? Math.min(100, Math.max(0, ramData.used_percent))
+    : 0
+
+  const statusText = hasError
+    ? 'ERROR'
+    : cpuData && ramData
+      ? 'HEALTHY'
+      : 'SYNCING'
+  const statusColor = hasError ? m3Tokens.error : m3Tokens.primary
   return (
     <Box
       component="aside"
@@ -360,14 +486,17 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                 >
                   <SettingsIcon sx={{ fontSize: 13, color: activeNav === 4 ? m3Tokens.primary : m3Tokens.outline }} />
                 </Box>
-                <Box
+                <Typography
+                  component="span"
                   sx={{
-                    height: 10,
-                    width: 96,
-                    bgcolor: activeNav === 4 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    borderRadius: '4px',
+                    fontSize: 13,
+                    fontWeight: activeNav === 4 ? 600 : 500,
+                    color: activeNav === 4 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
+                    lineHeight: 1,
                   }}
-                />
+                >
+                  Settings
+                </Typography>
               </Box>
             </Box>
           </Box>
@@ -413,10 +542,10 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
               fontSize: 11,
               fontWeight: 500,
               letterSpacing: '0.03em',
-              color: m3Tokens.primary,
+              color: statusColor,
             }}
           >
-            HEALTHY
+            {statusText}
           </Typography>
         </Box>
 
@@ -434,7 +563,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
               }}
             >
               <span>CPU</span>
-              <span>28%</span>
+              <span>{cpuValue}</span>
             </Box>
             <Box
               sx={{
@@ -449,7 +578,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                 sx={{
                   height: '100%',
                   bgcolor: m3Tokens.primary,
-                  width: '28%',
+                  width: `${cpuProgress}%`,
                   borderRadius: 9999,
                   transition: 'width 0.4s ease',
                 }}
@@ -469,7 +598,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
               }}
             >
               <span>RAM</span>
-              <span>4.2 / 16 GB</span>
+              <span>{ramValue}</span>
             </Box>
             <Box
               sx={{
@@ -485,7 +614,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
                   height: '100%',
                   bgcolor: m3Tokens.primary,
                   opacity: 0.8,
-                  width: '38%',
+                  width: `${ramProgress}%`,
                   borderRadius: 9999,
                   transition: 'width 0.4s ease',
                 }}
@@ -521,7 +650,7 @@ export function Sidebar({ activeNav, onSelectNav }: SidebarProps) {
               width: 8,
               height: 8,
               borderRadius: '50%',
-              bgcolor: m3Tokens.primary,
+              bgcolor: statusColor,
             }}
           />
         </Box>
