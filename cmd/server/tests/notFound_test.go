@@ -25,7 +25,7 @@ func TestNotFoundHandler(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	if !strings.Contains(body, "404 - Ressource nicht gefunden") {
+	if !strings.Contains(body, "404 - Resource not found") {
 		t.Errorf("Expected 404.html content in body, got: %s", body)
 	}
 }

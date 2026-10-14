@@ -181,7 +181,7 @@
             <!-- Action Buttons Row -->
             <div class="flex flex-wrap items-center justify-center gap-space-md mb-space-xl">
                 <!-- Primary Pill Button -->
-                <a class="inline-flex items-center justify-center gap-space-sm h-10 px-space-lg rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg hover:brightness-110 active:opacity-80 transition-all duration-150 m3-elevation-1"
+                <a id="back-to-dashboard" class="inline-flex items-center justify-center gap-space-sm h-10 px-space-lg rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg hover:brightness-110 active:opacity-80 transition-all duration-150 m3-elevation-1"
                     href="/">
                     <span class="material-symbols-outlined text-lg"
                         style="font-variation-settings: 'FILL' 1;">dashboard</span>
@@ -199,21 +199,21 @@
     </main>
 
     <script>
-        document.getElementById('copy-btn')?.addEventListener('click', () => {
-            const traceText = document.getElementById('trace-id-value')?.textContent?.trim() || '';
-            if (traceText) {
-                navigator.clipboard.writeText(traceText).then(() => {
-                    const textEl = document.getElementById('copy-text');
-                    const iconEl = document.getElementById('copy-icon');
-                    if (textEl) textEl.textContent = 'Trace ID kopiert!';
-                    if (iconEl) iconEl.textContent = 'check';
-                    setTimeout(() => {
-                        if (textEl) textEl.textContent = 'Trace ID kopieren';
-                        if (iconEl) iconEl.textContent = 'content_copy';
-                    }, 2000);
-                }).catch(() => { });
+        const dashboardBtn = document.getElementById('back-to-dashboard');
+        function getDashboardUrl() {
+            if (window.location.protocol === 'file:' || (window.location.port !== '5173' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))) {
+                return 'http://localhost:5173/';
             }
-        });
+            return '/';
+        }
+
+        if (dashboardBtn) {
+            dashboardBtn.href = getDashboardUrl();
+            dashboardBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.href = getDashboardUrl();
+            });
+        }
     </script>
 </body>
 
