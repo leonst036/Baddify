@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Box, Card, Typography } from '@mui/material'
 import { m3Tokens } from '../../theme/m3Tokens'
 
@@ -8,6 +9,22 @@ interface MetricItemProps {
   value: string
   progress: number
   progressOpacity?: number
+}
+
+interface CPUInfoResponse {
+  logical_cores: number
+  physical_cores: number
+  overall_percent: number[]
+  usage_percent: number
+}
+
+function getCookieToken(): string | null {
+  const cookieRow = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('token='))
+  if (!cookieRow) return null
+  const token = cookieRow.split('=')[1]
+  return token ? decodeURIComponent(token) : null
 }
 
 function MetricCard({
@@ -93,6 +110,68 @@ function MetricCard({
 }
 
 export function MetricsGrid() {
+  const [cpuData, setCpuData] = useState<CPUInfoResponse | null>(null)
+  const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchCpuMetrics = async () => {
+      try {
+        const token = getCookieToken()
+        const headers: Record<string, string> = {}
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+
+        const res = await fetch('/api/cpu', {
+          headers,
+          credentials: 'include',
+        })
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch CPU metrics')
+        }
+
+        const data: CPUInfoResponse = await res.json()
+        if (isMounted) {
+          setCpuData(data)
+          setHasError(false)
+        }
+      } catch {
+        if (isMounted) {
+          setHasError(true)
+        }
+      }
+    }
+
+    fetchCpuMetrics()
+    const interval = setInterval(fetchCpuMetrics, 5000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [])
+
+  const cpuStatus = hasError && !cpuData
+    ? 'ERROR'
+    : cpuData
+      ? `${cpuData.logical_cores} CORES`
+      : 'LOADING...'
+
+  const cpuStatusColor = hasError && !cpuData ? m3Tokens.error : undefined
+
+  const cpuValue = cpuData
+    ? `${cpuData.usage_percent.toFixed(1)}%`
+    : hasError
+      ? 'N/A'
+      : '--%'
+
+  const cpuProgress = cpuData
+    ? Math.min(100, Math.max(0, cpuData.usage_percent))
+    : 0
+
   return (
     <Box
       component="section"
@@ -115,9 +194,10 @@ export function MetricsGrid() {
       />
       <MetricCard
         title="CPU LOAD"
-        status="8 CORES"
-        value="24.6%"
-        progress={24.6}
+        status={cpuStatus}
+        statusColor={cpuStatusColor}
+        value={cpuValue}
+        progress={cpuProgress}
       />
       <MetricCard
         title="MEMORY FOOTPRINT"

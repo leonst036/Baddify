@@ -4,15 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shirou/gopsutil/v4/cpu"
 )
-
-func RegisterAboutServerRoutes(r chi.Router) {
-	r.Get("/api/cpu", AboutServerCPU)
-}
 
 type CPUInfoResponse struct {
 	LogicalCores   int       `json:"logical_cores"`
@@ -21,34 +19,59 @@ type CPUInfoResponse struct {
 	UsagePercent   float64   `json:"usage_percent"`
 }
 
+var (
+	cachedCPU atomic.Pointer[CPUInfoResponse]
+	startOnce sync.Once
+)
+
+func RegisterAboutServerRoutes(r chi.Router) {
+	startCPUMonitor()
+	r.Get("/api/cpu", AboutServerCPU)
+}
+
+func startCPUMonitor() {
+	startOnce.Do(func() {
+		logicalCores := runtime.NumCPU()
+		physicalCores, err := cpu.Counts(false)
+		if err != nil || physicalCores == 0 {
+			physicalCores = logicalCores
+		}
+
+		// Initial seed value
+		cachedCPU.Store(&CPUInfoResponse{
+			LogicalCores:   logicalCores,
+			PhysicalCores:  physicalCores,
+			OverallPercent: []float64{0},
+			UsagePercent:   0,
+		})
+
+		// Background collector
+		go func() {
+			for {
+				percents, err := cpu.Percent(time.Second, false)
+				if err == nil && len(percents) > 0 {
+					cachedCPU.Store(&CPUInfoResponse{
+						LogicalCores:   logicalCores,
+						PhysicalCores:  physicalCores,
+						OverallPercent: percents,
+						UsagePercent:   percents[0],
+					})
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}()
+	})
+}
+
 func AboutServerCPU(w http.ResponseWriter, r *http.Request) {
-	logicalCores := runtime.NumCPU()
-	physicalCores, err := cpu.Counts(false)
-	if err != nil {
-		http.Error(w, "Error getting CPU info", http.StatusInternalServerError)
+	data := cachedCPU.Load()
+	if data == nil {
+		http.Error(w, "CPU metrics not ready", http.StatusServiceUnavailable)
 		return
-	}
-
-	overallPercent, err := cpu.Percent(1*time.Second, false)
-	if err != nil {
-		http.Error(w, "Error getting CPU percent", http.StatusInternalServerError)
-		return
-	}
-
-	var usage float64
-	if len(overallPercent) > 0 {
-		usage = overallPercent[0]
-	}
-
-	res := CPUInfoResponse{
-		LogicalCores:   logicalCores,
-		PhysicalCores:  physicalCores,
-		OverallPercent: overallPercent,
-		UsagePercent:   usage,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(res); err != nil {
+	if err := json.NewEncoder(w).Encode(data); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
