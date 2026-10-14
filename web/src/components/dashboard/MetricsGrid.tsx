@@ -18,6 +18,24 @@ interface CPUInfoResponse {
   usage_percent: number
 }
 
+interface RAMInfoResponse {
+  total: number
+  used: number
+  available: number
+  free: number
+  used_percent: number
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return '0 GB'
+  const gb = bytes / (1024 * 1024 * 1024)
+  if (gb >= 1) {
+    return `${gb.toFixed(1)} GB`
+  }
+  const mb = bytes / (1024 * 1024)
+  return `${mb.toFixed(0)} MB`
+}
+
 function getCookieToken(): string | null {
   const cookieRow = document.cookie
     .split('; ')
@@ -111,42 +129,67 @@ function MetricCard({
 
 export function MetricsGrid() {
   const [cpuData, setCpuData] = useState<CPUInfoResponse | null>(null)
-  const [hasError, setHasError] = useState(false)
+  const [ramData, setRamData] = useState<RAMInfoResponse | null>(null)
+  const [hasCpuError, setHasCpuError] = useState(false)
+  const [hasRamError, setHasRamError] = useState(false)
 
   useEffect(() => {
     let isMounted = true
 
-    const fetchCpuMetrics = async () => {
-      try {
-        const token = getCookieToken()
-        const headers: Record<string, string> = {}
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`
-        }
+    const fetchMetrics = async () => {
+      const token = getCookieToken()
+      const headers: Record<string, string> = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
 
-        const res = await fetch('/api/cpu', {
-          headers,
-          credentials: 'include',
-        })
-
-        if (!res.ok) {
-          throw new Error('Failed to fetch CPU metrics')
-        }
-
-        const data: CPUInfoResponse = await res.json()
-        if (isMounted) {
-          setCpuData(data)
-          setHasError(false)
-        }
-      } catch {
-        if (isMounted) {
-          setHasError(true)
+      const fetchCpu = async () => {
+        try {
+          const res = await fetch('/api/cpu', {
+            headers,
+            credentials: 'include',
+          })
+          if (!res.ok) {
+            throw new Error('Failed to fetch CPU metrics')
+          }
+          const data: CPUInfoResponse = await res.json()
+          if (isMounted) {
+            setCpuData(data)
+            setHasCpuError(false)
+          }
+        } catch {
+          if (isMounted) {
+            setHasCpuError(true)
+          }
         }
       }
+
+      const fetchRam = async () => {
+        try {
+          const res = await fetch('/api/ram', {
+            headers,
+            credentials: 'include',
+          })
+          if (!res.ok) {
+            throw new Error('Failed to fetch RAM metrics')
+          }
+          const data: RAMInfoResponse = await res.json()
+          if (isMounted) {
+            setRamData(data)
+            setHasRamError(false)
+          }
+        } catch {
+          if (isMounted) {
+            setHasRamError(true)
+          }
+        }
+      }
+
+      await Promise.all([fetchCpu(), fetchRam()])
     }
 
-    fetchCpuMetrics()
-    const interval = setInterval(fetchCpuMetrics, 5000)
+    fetchMetrics()
+    const interval = setInterval(fetchMetrics, 5000)
 
     return () => {
       isMounted = false
@@ -154,22 +197,40 @@ export function MetricsGrid() {
     }
   }, [])
 
-  const cpuStatus = hasError && !cpuData
+  const cpuStatus = hasCpuError && !cpuData
     ? 'ERROR'
     : cpuData
       ? `${cpuData.logical_cores} CORES`
       : 'LOADING...'
 
-  const cpuStatusColor = hasError && !cpuData ? m3Tokens.error : undefined
+  const cpuStatusColor = hasCpuError && !cpuData ? m3Tokens.error : undefined
 
   const cpuValue = cpuData
     ? `${cpuData.usage_percent.toFixed(1)}%`
-    : hasError
+    : hasCpuError
       ? 'N/A'
       : '--%'
 
   const cpuProgress = cpuData
     ? Math.min(100, Math.max(0, cpuData.usage_percent))
+    : 0
+
+  const ramStatus = hasRamError && !ramData
+    ? 'ERROR'
+    : ramData
+      ? `${formatBytes(ramData.total)} ALLOC`
+      : 'LOADING...'
+
+  const ramStatusColor = hasRamError && !ramData ? m3Tokens.error : undefined
+
+  const ramValue = ramData
+    ? formatBytes(ramData.used)
+    : hasRamError
+      ? 'N/A'
+      : '-- GB'
+
+  const ramProgress = ramData
+    ? Math.min(100, Math.max(0, ramData.used_percent))
     : 0
 
   return (
@@ -201,9 +262,10 @@ export function MetricsGrid() {
       />
       <MetricCard
         title="MEMORY FOOTPRINT"
-        status="32 GB ALLOC"
-        value="14.2 GB"
-        progress={44}
+        status={ramStatus}
+        statusColor={ramStatusColor}
+        value={ramValue}
+        progress={ramProgress}
         progressOpacity={0.75}
       />
       <MetricCard
