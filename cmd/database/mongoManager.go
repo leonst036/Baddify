@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -23,6 +24,7 @@ var (
 
 type User struct {
 	ID        bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	UUID      string        `bson:"uuid" json:"uuid"`
 	Username  string        `bson:"username" json:"username"`
 	Password  string        `bson:"password" json:"-"`
 	CreatedAt time.Time     `bson:"created_at" json:"created_at"`
@@ -44,6 +46,7 @@ type Deployment struct {
 
 type Project struct {
 	ID          bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	UserUUID    string        `bson:"user_uuid" json:"user_uuid"`
 	Name        string        `bson:"name" json:"name"`
 	Description string        `bson:"description" json:"description"`
 	CreatedAt   time.Time     `bson:"created_at" json:"created_at"`
@@ -106,11 +109,23 @@ func NewMongoManager(uri, dbName string) (*MongoManager, error) {
 }
 
 func (m *MongoManager) ensureIndexes(ctx context.Context) error {
+	if err := m.EnsureUserUUIDs(ctx); err != nil {
+		return err
+	}
+
 	userIndex := mongo.IndexModel{
 		Keys:    bson.D{{Key: "username", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
 	if _, err := m.Users.Indexes().CreateOne(ctx, userIndex); err != nil {
+		return err
+	}
+
+	userUUIDIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "uuid", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+	if _, err := m.Users.Indexes().CreateOne(ctx, userUUIDIndex); err != nil {
 		return err
 	}
 
@@ -130,7 +145,51 @@ func (m *MongoManager) ensureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	projectUserIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "user_uuid", Value: 1}},
+	}
+	if _, err := m.Projects.Indexes().CreateOne(ctx, projectUserIndex); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// EnsureUserUUIDs migrates any users missing a UUID by assigning a new unique UUID.
+func (m *MongoManager) EnsureUserUUIDs(ctx context.Context) error {
+	filter := bson.M{
+		"$or": []bson.M{
+			{"uuid": bson.M{"$exists": false}},
+			{"uuid": ""},
+			{"uuid": nil},
+		},
+	}
+
+	cursor, err := m.Users.Find(ctx, filter)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var u User
+		if err := cursor.Decode(&u); err != nil {
+			return err
+		}
+
+		newUUID := uuid.NewString()
+		_, err := m.Users.UpdateByID(ctx, u.ID, bson.M{
+			"$set": bson.M{
+				"uuid":       newUUID,
+				"updated_at": time.Now().UTC(),
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return cursor.Err()
 }
 
 func (m *MongoManager) Disconnect(ctx context.Context) error {
@@ -155,6 +214,7 @@ func (m *MongoManager) RegisterUser(ctx context.Context, username, password stri
 
 	now := time.Now().UTC()
 	user := &User{
+		UUID:      uuid.NewString(),
 		Username:  username,
 		Password:  string(hashedPassword),
 		CreatedAt: now,
@@ -192,6 +252,18 @@ func (m *MongoManager) AuthenticateUser(ctx context.Context, username, password 
 func (m *MongoManager) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	var user User
 	err := m.Users.FindOne(ctx, bson.M{"username": username}).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (m *MongoManager) GetUserByUUID(ctx context.Context, userUUID string) (*User, error) {
+	var user User
+	err := m.Users.FindOne(ctx, bson.M{"uuid": userUUID}).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrUserNotFound
@@ -346,6 +418,21 @@ func (m *MongoManager) SaveProject(ctx context.Context, project *Project) error 
 
 func (m *MongoManager) GetProjects(ctx context.Context) ([]Project, error) {
 	cursor, err := m.Projects.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var projects []Project
+	if err := cursor.All(ctx, &projects); err != nil {
+		return nil, err
+	}
+
+	return projects, nil
+}
+
+func (m *MongoManager) GetProjectsByUserUUID(ctx context.Context, userUUID string) ([]Project, error) {
+	cursor, err := m.Projects.Find(ctx, bson.M{"user_uuid": userUUID})
 	if err != nil {
 		return nil, err
 	}

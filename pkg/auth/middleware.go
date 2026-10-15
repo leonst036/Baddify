@@ -71,6 +71,11 @@ func RequireTokenIfNotProxied(exemptPaths ...string) func(http.Handler) http.Han
 
 			// Allow requests forwarded through Caddy reverse proxy
 			if IsProxiedThroughCaddy(r) {
+				if tokenString := ExtractToken(r); tokenString != "" {
+					if claims, err := ValidateToken(tokenString); err == nil {
+						r = r.WithContext(context.WithValue(r.Context(), UserClaimsKey, claims))
+					}
+				}
 				next.ServeHTTP(w, r)
 				return
 			}

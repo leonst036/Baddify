@@ -82,5 +82,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("User '%s' created successfully (ID: %s)\n", user.Username, user.ID.Hex())
+	fmt.Printf("User '%s' created successfully (ID: %s, UUID: %s)\n", user.Username, user.ID.Hex(), user.UUID)
 }

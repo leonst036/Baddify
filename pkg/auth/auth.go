@@ -14,6 +14,7 @@ var (
 
 type Claims struct {
 	UserID   string `json:"user_id"`
+	UserUUID string `json:"user_uuid"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
@@ -27,9 +28,17 @@ func getJWTSecret() []byte {
 }
 
 // GenerateToken creates a signed JWT token for a user.
-func GenerateToken(userID, username string) (string, error) {
+func GenerateToken(userID, username string, userUUID ...string) (string, error) {
+	uUUID := ""
+	if len(userUUID) > 0 && userUUID[0] != "" {
+		uUUID = userUUID[0]
+	} else {
+		uUUID = userID
+	}
+
 	claims := Claims{
 		UserID:   userID,
+		UserUUID: uUUID,
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestMongoManagerIntegration(t *testing.T) {
@@ -32,6 +34,40 @@ func TestMongoManagerIntegration(t *testing.T) {
 		t.Errorf("Expected username %s, got %s", testUser, user.Username)
 	}
 
+	if user.UUID == "" {
+		t.Fatalf("Expected non-empty UUID for user")
+	}
+
+	byUUID, err := manager.GetUserByUUID(ctx, user.UUID)
+	if err != nil {
+		t.Fatalf("GetUserByUUID failed: %v", err)
+	}
+	if byUUID.Username != testUser {
+		t.Errorf("Expected username %s, got %s", testUser, byUUID.Username)
+	}
+
+	// Test migration for existing users without UUID
+	legacyUser := bson.M{
+		"username":   fmt.Sprintf("legacy_%d", time.Now().UnixNano()),
+		"password":   "hash",
+		"created_at": time.Now(),
+		"updated_at": time.Now(),
+	}
+	resLegacy, err := manager.Users.InsertOne(ctx, legacyUser)
+	if err != nil {
+		t.Fatalf("Failed to insert legacy user: %v", err)
+	}
+	if err := manager.EnsureUserUUIDs(ctx); err != nil {
+		t.Fatalf("EnsureUserUUIDs migration failed: %v", err)
+	}
+	var migratedUser User
+	if err := manager.Users.FindOne(ctx, bson.M{"_id": resLegacy.InsertedID}).Decode(&migratedUser); err != nil {
+		t.Fatalf("Failed to find migrated user: %v", err)
+	}
+	if migratedUser.UUID == "" {
+		t.Errorf("Expected migrated user to have a UUID assigned")
+	}
+
 	// Test duplicate registration
 	_, err = manager.RegisterUser(ctx, testUser, testPassword)
 	if err != ErrUserAlreadyExists {
@@ -45,6 +81,9 @@ func TestMongoManagerIntegration(t *testing.T) {
 	}
 	if authUser.ID != user.ID {
 		t.Errorf("Expected user ID %v, got %v", user.ID, authUser.ID)
+	}
+	if authUser.UUID != user.UUID {
+		t.Errorf("Expected user UUID %s, got %s", user.UUID, authUser.UUID)
 	}
 
 	// Test invalid password
@@ -86,6 +125,7 @@ func TestMongoManagerIntegration(t *testing.T) {
 	}
 
 	project := &Project{
+		UserUUID:    user.UUID,
 		Name:        projectName,
 		Description: "A test project",
 	}
@@ -102,8 +142,19 @@ func TestMongoManagerIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetProjectByName failed: %v", err)
 	}
+	if fetchedProj.UserUUID != user.UUID {
+		t.Errorf("Expected UserUUID %s, got %s", user.UUID, fetchedProj.UserUUID)
+	}
 	if fetchedProj.Description != project.Description {
 		t.Errorf("Expected description %s, got %s", project.Description, fetchedProj.Description)
+	}
+
+	userProjects, err := manager.GetProjectsByUserUUID(ctx, user.UUID)
+	if err != nil {
+		t.Fatalf("GetProjectsByUserUUID failed: %v", err)
+	}
+	if len(userProjects) == 0 || userProjects[0].UserUUID != user.UUID {
+		t.Errorf("Expected to find project with UserUUID %s", user.UUID)
 	}
 
 	if err := manager.DeleteProject(ctx, fetchedProj.ID); err != nil {

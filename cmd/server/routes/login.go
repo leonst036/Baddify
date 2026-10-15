@@ -34,9 +34,10 @@ func Verify(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"valid":    true,
-		"user_id":  claims.UserID,
-		"username": claims.Username,
+		"valid":     true,
+		"user_id":   claims.UserID,
+		"user_uuid": claims.UserUUID,
+		"username":  claims.Username,
 	})
 }
 
@@ -73,7 +74,7 @@ func Login(db *database.MongoManager) http.HandlerFunc {
 			return
 		}
 
-		token, err := auth.GenerateToken(user.ID.Hex(), user.Username)
+		token, err := auth.GenerateToken(user.ID.Hex(), user.Username, user.UUID)
 		if err != nil {
 			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 			return
@@ -89,9 +90,10 @@ func Login(db *database.MongoManager) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"token":    token,
-			"username": user.Username,
-			"message":  fmt.Sprintf("Login successful: %s", user.Username),
+			"token":     token,
+			"username":  user.Username,
+			"user_uuid": user.UUID,
+			"message":   fmt.Sprintf("Login successful: %s", user.Username),
 		})
 	}
 }
@@ -114,7 +116,7 @@ func Register(db *database.MongoManager) http.HandlerFunc {
 			return
 		}
 
-		token, err := auth.GenerateToken(user.ID.Hex(), user.Username)
+		token, err := auth.GenerateToken(user.ID.Hex(), user.Username, user.UUID)
 		if err != nil {
 			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 			return
@@ -130,9 +132,10 @@ func Register(db *database.MongoManager) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"token":    token,
-			"username": user.Username,
-			"message":  fmt.Sprintf("Registration successful: %s", user.Username),
+			"token":     token,
+			"username":  user.Username,
+			"user_uuid": user.UUID,
+			"message":   fmt.Sprintf("Registration successful: %s", user.Username),
 		})
 	}
 }
