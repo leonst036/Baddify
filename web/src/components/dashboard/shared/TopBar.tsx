@@ -4,6 +4,8 @@ import { m3Tokens } from '../../../theme/m3Tokens'
 
 interface TopBarProps {
   activeNav?: number
+  subTitle?: string
+  onTitleClick?: () => void
 }
 
 const NAV_TITLES: Record<number, string> = {
@@ -14,7 +16,7 @@ const NAV_TITLES: Record<number, string> = {
   4: 'Settings',
 }
 
-export function TopBar({ activeNav = 0 }: TopBarProps) {
+export function TopBar({ activeNav = 0, subTitle, onTitleClick }: TopBarProps) {
   const currentTitle = NAV_TITLES[activeNav] || 'Overview'
 
   return (
@@ -45,31 +47,62 @@ export function TopBar({ activeNav = 0 }: TopBarProps) {
           }}
         >
           <Button
-            component="span"
+            onClick={onTitleClick}
+            component={onTitleClick ? 'button' : 'span'}
             sx={{
               px: 1.5,
               py: 0.5,
               minWidth: 'auto',
               borderRadius: '4px',
-              bgcolor: m3Tokens.primary,
+              bgcolor: subTitle ? m3Tokens.surfaceContainer : m3Tokens.primary,
               border: `1px solid ${m3Tokens.outlineVariant}`,
-              color: m3Tokens.onPrimary,
+              color: subTitle ? m3Tokens.onSurfaceVariant : m3Tokens.onPrimary,
               fontFamily: m3Tokens.fontCode,
               fontSize: 12,
+              cursor: onTitleClick ? 'pointer' : 'default',
+              textTransform: 'none',
+              '&:hover': onTitleClick
+                ? {
+                    bgcolor: m3Tokens.surfaceContainerHigh,
+                    color: m3Tokens.onSurface,
+                  }
+                : undefined,
             }}
           >
             {currentTitle}
           </Button>
+
           <Typography
             component="span"
             sx={{
               color: m3Tokens.outlineVariant,
               fontFamily: m3Tokens.fontCode,
               fontSize: 12,
+              px: 0.25,
             }}
           >
-            /
+            {subTitle ? '>' : '/'}
           </Typography>
+
+          {subTitle && (
+            <Button
+              component="span"
+              sx={{
+                px: 1.5,
+                py: 0.5,
+                minWidth: 'auto',
+                borderRadius: '4px',
+                bgcolor: m3Tokens.primary,
+                border: `1px solid ${m3Tokens.outlineVariant}`,
+                color: m3Tokens.onPrimary,
+                fontFamily: m3Tokens.fontCode,
+                fontSize: 12,
+                textTransform: 'none',
+              }}
+            >
+              {subTitle}
+            </Button>
+          )}
         </Box>
       </Box>
 

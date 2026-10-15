@@ -8,8 +8,16 @@ import { ProjectsView } from './projects'
 
 export function ControlPlaneDashboard() {
   const [activeNav, setActiveNav] = useState(0)
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const telemetry = useTelemetry()
+
+  const handleSelectNav = (index: number) => {
+    setActiveNav(index)
+    if (index !== 1) {
+      setIsCreatingProject(false)
+    }
+  }
 
   return (
     <Box
@@ -27,7 +35,7 @@ export function ControlPlaneDashboard() {
       {/* Structural Left Shell: Shared Navigation Sidebar */}
       <Sidebar
         activeNav={activeNav}
-        onSelectNav={setActiveNav}
+        onSelectNav={handleSelectNav}
         cpuData={telemetry.cpuData}
         ramData={telemetry.ramData}
       />
@@ -45,7 +53,15 @@ export function ControlPlaneDashboard() {
         }}
       >
         {/* Top Bar Frame: Shared Shell Header with Active Section Badge */}
-        <TopBar activeNav={activeNav} />
+        <TopBar
+          activeNav={activeNav}
+          subTitle={activeNav === 1 && isCreatingProject ? 'New Projects' : undefined}
+          onTitleClick={
+            activeNav === 1 && isCreatingProject
+              ? () => setIsCreatingProject(false)
+              : undefined
+          }
+        />
 
         {/* Main Content Area: High-Density Developer Viewport */}
         <Box
@@ -66,7 +82,12 @@ export function ControlPlaneDashboard() {
             />
           )}
 
-          {activeNav === 1 && <ProjectsView />}
+          {activeNav === 1 && (
+            <ProjectsView
+              isCreating={isCreatingProject}
+              onToggleCreating={setIsCreatingProject}
+            />
+          )}
 
           {activeNav > 1 && (
             <DashboardCard
