@@ -17,6 +17,8 @@ var (
 	ErrUserAlreadyExists   = errors.New("user already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrDeploymentNotFound = errors.New("deployment not found")
+	ErrProjectNotFound    = errors.New("project not found")
+	ErrProjectAlreadyExists = errors.New("project already exists")
 )
 
 type User struct {
@@ -40,11 +42,20 @@ type Deployment struct {
 	UpdatedAt     time.Time     `bson:"updated_at" json:"updated_at"`
 }
 
+type Project struct {
+	ID          bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name        string        `bson:"name" json:"name"`
+	Description string        `bson:"description" json:"description"`
+	CreatedAt   time.Time     `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time     `bson:"updated_at" json:"updated_at"`
+}
+
 type MongoManager struct {
 	Client      *mongo.Client
 	Database    *mongo.Database
 	Users       *mongo.Collection
 	Deployments *mongo.Collection
+	Projects    *mongo.Collection
 }
 
 // NewMongoManager initializes MongoDB connection and collections
@@ -83,6 +94,7 @@ func NewMongoManager(uri, dbName string) (*MongoManager, error) {
 		Database:    db,
 		Users:       db.Collection("users"),
 		Deployments: db.Collection("deployments"),
+		Projects:    db.Collection("projects"),
 	}
 
 	if err := manager.ensureIndexes(ctx); err != nil {
@@ -107,6 +119,14 @@ func (m *MongoManager) ensureIndexes(ctx context.Context) error {
 		Options: options.Index().SetUnique(true),
 	}
 	if _, err := m.Deployments.Indexes().CreateOne(ctx, deploymentIndex); err != nil {
+		return err
+	}
+
+	projectIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "name", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+	if _, err := m.Projects.Indexes().CreateOne(ctx, projectIndex); err != nil {
 		return err
 	}
 
@@ -273,3 +293,104 @@ func (m *MongoManager) DeleteDeployment(ctx context.Context, id bson.ObjectID) e
 	}
 	return nil
 }
+
+// Project methods
+
+func (m *MongoManager) ProjectExists(name string) bool {
+	exists, _ := m.ProjectExistsWithContext(context.Background(), name)
+	return exists
+}
+
+func (m *MongoManager) ProjectExistsWithContext(ctx context.Context, name string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	count, err := m.Projects.CountDocuments(ctx, bson.M{"name": name})
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (m *MongoManager) SaveProject(ctx context.Context, project *Project) error {
+	now := time.Now().UTC()
+	project.UpdatedAt = now
+
+	if project.ID.IsZero() {
+		project.CreatedAt = now
+		res, err := m.Projects.InsertOne(ctx, project)
+		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				return ErrProjectAlreadyExists
+			}
+			return err
+		}
+		if oid, ok := res.InsertedID.(bson.ObjectID); ok {
+			project.ID = oid
+		}
+		return nil
+	}
+
+	update := bson.M{
+		"$set": project,
+	}
+	res, err := m.Projects.UpdateByID(ctx, project.ID, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return ErrProjectNotFound
+	}
+	return nil
+}
+
+func (m *MongoManager) GetProjects(ctx context.Context) ([]Project, error) {
+	cursor, err := m.Projects.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var projects []Project
+	if err := cursor.All(ctx, &projects); err != nil {
+		return nil, err
+	}
+
+	return projects, nil
+}
+
+func (m *MongoManager) GetProjectByName(ctx context.Context, name string) (*Project, error) {
+	var project Project
+	err := m.Projects.FindOne(ctx, bson.M{"name": name}).Decode(&project)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrProjectNotFound
+		}
+		return nil, err
+	}
+	return &project, nil
+}
+
+func (m *MongoManager) GetProjectByID(ctx context.Context, id bson.ObjectID) (*Project, error) {
+	var project Project
+	err := m.Projects.FindOne(ctx, bson.M{"_id": id}).Decode(&project)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrProjectNotFound
+		}
+		return nil, err
+	}
+	return &project, nil
+}
+
+func (m *MongoManager) DeleteProject(ctx context.Context, id bson.ObjectID) error {
+	res, err := m.Projects.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return ErrProjectNotFound
+	}
+	return nil
+}
+

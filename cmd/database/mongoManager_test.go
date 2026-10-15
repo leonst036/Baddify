@@ -78,4 +78,39 @@ func TestMongoManagerIntegration(t *testing.T) {
 	if err := manager.DeleteDeployment(ctx, fetchedDep.ID); err != nil {
 		t.Fatalf("DeleteDeployment failed: %v", err)
 	}
+
+	// Test project methods
+	projectName := fmt.Sprintf("test-project-%d", time.Now().UnixNano())
+	if manager.ProjectExists(projectName) {
+		t.Errorf("Expected project %s to not exist yet", projectName)
+	}
+
+	project := &Project{
+		Name:        projectName,
+		Description: "A test project",
+	}
+
+	if err := manager.SaveProject(ctx, project); err != nil {
+		t.Fatalf("SaveProject failed: %v", err)
+	}
+
+	if !manager.ProjectExists(projectName) {
+		t.Errorf("Expected project %s to exist", projectName)
+	}
+
+	fetchedProj, err := manager.GetProjectByName(ctx, projectName)
+	if err != nil {
+		t.Fatalf("GetProjectByName failed: %v", err)
+	}
+	if fetchedProj.Description != project.Description {
+		t.Errorf("Expected description %s, got %s", project.Description, fetchedProj.Description)
+	}
+
+	if err := manager.DeleteProject(ctx, fetchedProj.ID); err != nil {
+		t.Fatalf("DeleteProject failed: %v", err)
+	}
+
+	if manager.ProjectExists(projectName) {
+		t.Errorf("Expected project %s to no longer exist after deletion", projectName)
+	}
 }

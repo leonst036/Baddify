@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material'
 import { m3Tokens } from '../../theme/m3Tokens'
 import { Footer } from '../footer/footer'
+import { getAuthHeaders } from '../../api/client'
 
 interface NewProjectsProps {
     onBack?: () => void
@@ -53,10 +54,37 @@ export function NewProjects({ onBack }: NewProjectsProps) {
         setEnvVars((prev) => prev.filter((_, i) => i !== index))
     }
 
+    const createProject = async () => {
+        if (!projectName.trim()) {
+            alert('Please enter a project name')
+            return
+        }
+
+        try {
+            const params = new URLSearchParams({
+                project_name: projectName.trim(),
+                project_description: projectDescription.trim(),
+            })
+            const res = await fetch(`/api/projects/new?${params.toString()}`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+                credentials: 'include',
+            })
+            const text = await res.text()
+            if (res.ok) {
+                alert(text || 'Project created successfully')
+            } else {
+                alert(`Error: ${text || res.statusText}`)
+            }
+        } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : 'Network error'
+            alert(`Error: ${errorMsg}`)
+        }
+    }
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        if (!projectName.trim()) return
-        // Handle project creation
+        createProject()
     }
 
     return (
@@ -98,12 +126,15 @@ export function NewProjects({ onBack }: NewProjectsProps) {
                     <Box>
                         <Typography
                             component="h1"
+                            onClick={createProject}
                             sx={{
                                 fontSize: 26,
                                 fontWeight: 600,
                                 color: m3Tokens.onSurface,
                                 letterSpacing: '-0.02em',
                                 lineHeight: 1.2,
+                                cursor: 'pointer',
+                                userSelect: 'none',
                             }}
                         >
                             Initialize New Project
