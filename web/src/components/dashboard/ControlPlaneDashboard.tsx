@@ -1,14 +1,10 @@
 import { useState } from 'react'
-import { Box } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { m3Tokens } from '../../theme/m3Tokens'
 import { useTelemetry } from '../../hooks/useTelemetry'
-import { Sidebar, TopBar } from './shared'
-import {
-  DashboardHeader,
-  MetricsGrid,
-  NodeDetails,
-  WorkloadAllocations,
-} from './home'
+import { DashboardCard, Sidebar, TopBar } from './shared'
+import { HomeView } from './home'
+import { ProjectsView } from './projects'
 
 export function ControlPlaneDashboard() {
   const [activeNav, setActiveNav] = useState(0)
@@ -48,8 +44,8 @@ export function ControlPlaneDashboard() {
           overflow: 'hidden',
         }}
       >
-        {/* Top Bar Frame: Shared Shell Header */}
-        <TopBar />
+        {/* Top Bar Frame: Shared Shell Header with Active Section Badge */}
+        <TopBar activeNav={activeNav} />
 
         {/* Main Content Area: High-Density Developer Viewport */}
         <Box
@@ -60,40 +56,38 @@ export function ControlPlaneDashboard() {
             p: 3,
             display: 'flex',
             flexDirection: 'column',
-            gap: 3,
           }}
         >
-          {/* Page Header Zone: Home Scaffolding Header & Primary Action Slot */}
-          <DashboardHeader
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
+          {activeNav === 0 && (
+            <HomeView
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              telemetry={telemetry}
+            />
+          )}
 
-          {/* Resource Overview Strip: Telemetry Metrics Grid Slots */}
-          <MetricsGrid telemetry={telemetry} />
+          {activeNav === 1 && <ProjectsView />}
 
-          {/* Core Layout Grid: Service & Workload Container Slots */}
-          <Box
-            component="section"
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                lg: '2fr 1fr',
-              },
-              gap: 2,
-            }}
-          >
-            {/* Large Workspace Frame (2 Columns Span) */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <WorkloadAllocations />
-            </Box>
-
-            {/* Right Side Panel Frame (1 Column Span) */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <NodeDetails />
-            </Box>
-          </Box>
+          {activeNav > 1 && (
+            <DashboardCard
+              sx={{
+                p: 6,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                gap: 1.5,
+              }}
+            >
+              <Typography sx={{ fontSize: 18, fontWeight: 600, color: m3Tokens.onSurface }}>
+                Work in Progress
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: m3Tokens.onSurfaceVariant }}>
+                This section is currently under development.
+              </Typography>
+            </DashboardCard>
+          )}
         </Box>
       </Box>
     </Box>
