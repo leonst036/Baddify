@@ -46,6 +46,7 @@ type Deployment struct {
 
 type Project struct {
 	ID          bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	UUID        string        `bson:"uuid" json:"uuid"`
 	UserUUID    string        `bson:"user_uuid" json:"user_uuid"`
 	Name        string        `bson:"name" json:"name"`
 	Description string        `bson:"description" json:"description"`
@@ -145,6 +146,18 @@ func (m *MongoManager) ensureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	if err := m.EnsureProjectUUIDs(ctx); err != nil {
+		return err
+	}
+
+	projectUUIDIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "uuid", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+	if _, err := m.Projects.Indexes().CreateOne(ctx, projectUUIDIndex); err != nil {
+		return err
+	}
+
 	projectUserIndex := mongo.IndexModel{
 		Keys: bson.D{{Key: "user_uuid", Value: 1}},
 	}
@@ -153,6 +166,43 @@ func (m *MongoManager) ensureIndexes(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// EnsureProjectUUIDs migrates any projects missing a UUID by assigning a new unique UUID.
+func (m *MongoManager) EnsureProjectUUIDs(ctx context.Context) error {
+	filter := bson.M{
+		"$or": []bson.M{
+			{"uuid": bson.M{"$exists": false}},
+			{"uuid": ""},
+			{"uuid": nil},
+		},
+	}
+
+	cursor, err := m.Projects.Find(ctx, filter)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var p Project
+		if err := cursor.Decode(&p); err != nil {
+			return err
+		}
+
+		newUUID := uuid.NewString()
+		_, err := m.Projects.UpdateByID(ctx, p.ID, bson.M{
+			"$set": bson.M{
+				"uuid":       newUUID,
+				"updated_at": time.Now().UTC(),
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return cursor.Err()
 }
 
 // EnsureUserUUIDs migrates any users missing a UUID by assigning a new unique UUID.
@@ -388,6 +438,10 @@ func (m *MongoManager) SaveProject(ctx context.Context, project *Project) error 
 	now := time.Now().UTC()
 	project.UpdatedAt = now
 
+	if project.UUID == "" {
+		project.UUID = uuid.NewString()
+	}
+
 	if project.ID.IsZero() {
 		project.CreatedAt = now
 		res, err := m.Projects.InsertOne(ctx, project)
@@ -472,6 +526,29 @@ func (m *MongoManager) GetProjectByID(ctx context.Context, id bson.ObjectID) (*P
 
 func (m *MongoManager) DeleteProject(ctx context.Context, id bson.ObjectID) error {
 	res, err := m.Projects.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return ErrProjectNotFound
+	}
+	return nil
+}
+
+func (m *MongoManager) GetProjectByUUID(ctx context.Context, projectUUID string) (*Project, error) {
+	var project Project
+	err := m.Projects.FindOne(ctx, bson.M{"uuid": projectUUID}).Decode(&project)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrProjectNotFound
+		}
+		return nil, err
+	}
+	return &project, nil
+}
+
+func (m *MongoManager) DeleteProjectByUUID(ctx context.Context, projectUUID string) error {
+	res, err := m.Projects.DeleteOne(ctx, bson.M{"uuid": projectUUID})
 	if err != nil {
 		return err
 	}

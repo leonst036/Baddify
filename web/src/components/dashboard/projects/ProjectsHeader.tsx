@@ -1,17 +1,23 @@
-import { Box, Button, Typography } from '@mui/material'
-import { Add as AddIcon, Search as SearchIcon } from '@mui/icons-material'
+import { Box, Button, Typography, IconButton } from '@mui/material'
+import { Add as AddIcon, Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material'
 import { m3Tokens } from '../../../theme/m3Tokens'
 
 interface ProjectsHeaderProps {
   searchQuery: string
   onSearchChange: (value: string) => void
   onNewProject?: () => void
+  projectCount?: number
+  onRefresh?: () => void
+  isRefreshing?: boolean
 }
 
 export function ProjectsHeader({
   searchQuery,
   onSearchChange,
   onNewProject,
+  projectCount,
+  onRefresh,
+  isRefreshing,
 }: ProjectsHeaderProps) {
   return (
     <Box
@@ -26,18 +32,37 @@ export function ProjectsHeader({
       }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <Typography
-          component="h1"
-          sx={{
-            fontSize: 28,
-            fontWeight: 600,
-            color: m3Tokens.onSurface,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
-          }}
-        >
-          Projects
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <Typography
+            component="h1"
+            sx={{
+              fontSize: 28,
+              fontWeight: 600,
+              color: m3Tokens.onSurface,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}
+          >
+            Projects
+          </Typography>
+          {projectCount !== undefined && (
+            <Box
+              sx={{
+                px: 1,
+                py: 0.25,
+                borderRadius: '12px',
+                bgcolor: m3Tokens.surfaceContainerHigh,
+                border: `1px solid ${m3Tokens.outlineVariant}`,
+                fontSize: 12,
+                fontFamily: m3Tokens.fontCode,
+                color: m3Tokens.primary,
+                fontWeight: 600,
+              }}
+            >
+              {projectCount}
+            </Box>
+          )}
+        </Box>
         <Typography
           component="p"
           sx={{
@@ -90,6 +115,38 @@ export function ProjectsHeader({
             }}
           />
         </Box>
+
+        {onRefresh && (
+          <IconButton
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            sx={{
+              height: 38,
+              width: 38,
+              borderRadius: '8px',
+              bgcolor: m3Tokens.surfaceContainer,
+              border: `1px solid ${m3Tokens.outlineVariant}`,
+              color: m3Tokens.onSurfaceVariant,
+              transition: 'all 0.2s',
+              '&:hover': {
+                bgcolor: m3Tokens.surfaceContainerHigh,
+                color: m3Tokens.primary,
+                borderColor: m3Tokens.primary,
+              },
+            }}
+          >
+            <RefreshIcon
+              sx={{
+                fontSize: 18,
+                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' },
+                },
+              }}
+            />
+          </IconButton>
+        )}
 
         {/* New Project Action */}
         <Button

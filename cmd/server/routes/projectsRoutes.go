@@ -91,8 +91,13 @@ func GetProjects(db *database.MongoManager) http.HandlerFunc {
 		var projects []database.Project
 		var err error
 
-		if userUUID != "" {
+		if r.URL.Query().Get("mine") == "true" && userUUID != "" {
 			projects, err = db.GetProjectsByUserUUID(r.Context(), userUUID)
+		} else if userUUID != "" {
+			projects, err = db.GetProjectsByUserUUID(r.Context(), userUUID)
+			if err == nil && len(projects) == 0 {
+				projects, err = db.GetProjects(r.Context())
+			}
 		} else {
 			projects, err = db.GetProjects(r.Context())
 		}

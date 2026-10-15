@@ -134,6 +134,10 @@ func TestMongoManagerIntegration(t *testing.T) {
 		t.Fatalf("SaveProject failed: %v", err)
 	}
 
+	if project.UUID == "" {
+		t.Fatalf("Expected SaveProject to generate a UUID for project")
+	}
+
 	if !manager.ProjectExists(projectName) {
 		t.Errorf("Expected project %s to exist", projectName)
 	}
@@ -142,11 +146,44 @@ func TestMongoManagerIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetProjectByName failed: %v", err)
 	}
+	if fetchedProj.UUID != project.UUID {
+		t.Errorf("Expected project UUID %s, got %s", project.UUID, fetchedProj.UUID)
+	}
 	if fetchedProj.UserUUID != user.UUID {
 		t.Errorf("Expected UserUUID %s, got %s", user.UUID, fetchedProj.UserUUID)
 	}
 	if fetchedProj.Description != project.Description {
 		t.Errorf("Expected description %s, got %s", project.Description, fetchedProj.Description)
+	}
+
+	byProjUUID, err := manager.GetProjectByUUID(ctx, project.UUID)
+	if err != nil {
+		t.Fatalf("GetProjectByUUID failed: %v", err)
+	}
+	if byProjUUID.Name != projectName {
+		t.Errorf("Expected project name %s, got %s", projectName, byProjUUID.Name)
+	}
+
+	// Test migration of legacy project without UUID
+	legacyProj := bson.M{
+		"name":        fmt.Sprintf("legacy-proj-%d", time.Now().UnixNano()),
+		"description": "legacy",
+		"created_at":  time.Now(),
+		"updated_at":  time.Now(),
+	}
+	resLegacyProj, err := manager.Projects.InsertOne(ctx, legacyProj)
+	if err != nil {
+		t.Fatalf("Failed to insert legacy project: %v", err)
+	}
+	if err := manager.EnsureProjectUUIDs(ctx); err != nil {
+		t.Fatalf("EnsureProjectUUIDs failed: %v", err)
+	}
+	var migratedProj Project
+	if err := manager.Projects.FindOne(ctx, bson.M{"_id": resLegacyProj.InsertedID}).Decode(&migratedProj); err != nil {
+		t.Fatalf("Failed to find migrated project: %v", err)
+	}
+	if migratedProj.UUID == "" {
+		t.Errorf("Expected migrated project to have UUID")
 	}
 
 	userProjects, err := manager.GetProjectsByUserUUID(ctx, user.UUID)
@@ -157,8 +194,8 @@ func TestMongoManagerIntegration(t *testing.T) {
 		t.Errorf("Expected to find project with UserUUID %s", user.UUID)
 	}
 
-	if err := manager.DeleteProject(ctx, fetchedProj.ID); err != nil {
-		t.Fatalf("DeleteProject failed: %v", err)
+	if err := manager.DeleteProjectByUUID(ctx, fetchedProj.UUID); err != nil {
+		t.Fatalf("DeleteProjectByUUID failed: %v", err)
 	}
 
 	if manager.ProjectExists(projectName) {

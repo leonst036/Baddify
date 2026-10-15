@@ -75,6 +75,9 @@ func TestProjectCreationWithUserUUID(t *testing.T) {
 	if proj.UserUUID != user.UUID {
 		t.Errorf("Expected Project UserUUID %s, got %s", user.UUID, proj.UserUUID)
 	}
+	if proj.UUID == "" {
+		t.Errorf("Expected Project to have its own UUID")
+	}
 	if proj.Name != projName {
 		t.Errorf("Expected project name %s, got %s", projName, proj.Name)
 	}

@@ -73,6 +73,9 @@ export function NewProjects({ onBack }: NewProjectsProps) {
             const text = await res.text()
             if (res.ok) {
                 alert(text || 'Project created successfully')
+                if (onBack) {
+                    onBack()
+                }
             } else {
                 alert(`Error: ${text || res.statusText}`)
             }
