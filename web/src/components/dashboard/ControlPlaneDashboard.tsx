@@ -6,7 +6,6 @@ import { TopBar } from './TopBar'
 import { DashboardHeader } from './DashboardHeader'
 import { MetricsGrid } from './MetricsGrid'
 import { WorkloadAllocations } from './WorkloadAllocations'
-import { ConsoleStream } from './ConsoleStream'
 import { NodeDetails } from './NodeDetails'
 export function ControlPlaneDashboard() {
   const [activeNav, setActiveNav] = useState(0)
@@ -79,7 +78,6 @@ export function ControlPlaneDashboard() {
             {/* Large Workspace Frame (2 Columns Span) */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <WorkloadAllocations />
-              <ConsoleStream />
             </Box>
 
             {/* Right Side Panel Frame (1 Column Span) */}
