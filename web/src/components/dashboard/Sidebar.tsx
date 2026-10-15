@@ -1,71 +1,24 @@
 import { useEffect, useState } from 'react'
-import { Box, Typography, Tooltip } from '@mui/material'
+import { Box, Tooltip, Typography } from '@mui/material'
 import {
-  Layers as LayersIcon,
   Apps as AppsIcon,
-  Storage as StorageIcon,
   Dns as DnsIcon,
+  Layers as LayersIcon,
   Settings as SettingsIcon,
+  Storage as StorageIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '../../theme/m3Tokens'
-
-interface CPUInfoResponse {
-  logical_cores: number
-  physical_cores: number
-  overall_percent: number[]
-  usage_percent: number
-}
-
-interface RAMInfoResponse {
-  total: number
-  used: number
-  available: number
-  free: number
-  used_percent: number
-}
+import { apiFetch, checkHeartbeat } from '../../api/client'
+import type { CPUInfoResponse, RAMInfoResponse } from '../../api/types'
+import { formatRamUsage } from '../../utils/formatters'
+import { MetricProgressBar } from './shared'
+import { SidebarNavItem } from './SidebarNavItem'
 
 interface SidebarProps {
   activeNav: number
   onSelectNav: (index: number) => void
   cpuData?: CPUInfoResponse | null
   ramData?: RAMInfoResponse | null
-}
-
-function getCookieToken(): string | null {
-  const cookieRow = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith('token='))
-  if (!cookieRow) return null
-  const token = cookieRow.split('=')[1]
-  return token ? decodeURIComponent(token) : null
-}
-
-function formatRamUsage(usedBytes: number, totalBytes: number): string {
-  if (!totalBytes || totalBytes <= 0) return '-- / --'
-  const usedGb = usedBytes / (1024 * 1024 * 1024)
-  const totalGb = totalBytes / (1024 * 1024 * 1024)
-  if (totalGb >= 1) {
-    const totalStr = totalGb.toFixed(1).replace(/\.0$/, '')
-    return `${usedGb.toFixed(1)} / ${totalStr} GB`
-  }
-  const usedMb = (usedBytes / (1024 * 1024)).toFixed(0)
-  const totalMb = (totalBytes / (1024 * 1024)).toFixed(0)
-  return `${usedMb} / ${totalMb} MB`
-}
-
-async function heartbeat(): Promise<boolean> {
-  const token = getCookieToken()
-  const headers: Record<string, string> = {}
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  try {
-    const res = await fetch('/api/heartbeat', { headers, credentials: 'include' })
-    return res.ok
-  } catch {
-    return false
-  }
 }
 
 export function Sidebar({
@@ -79,72 +32,48 @@ export function Sidebar({
   const [hasError, setHasError] = useState(false)
   const [isConnected, setIsConnected] = useState(true)
 
+  // Heartbeat monitoring
   useEffect(() => {
     let isMounted = true
-
-    const checkHeartbeat = async () => {
-      const ok = await heartbeat()
-      if (isMounted) {
-        setIsConnected(ok)
-      }
+    const check = async () => {
+      const ok = await checkHeartbeat()
+      if (isMounted) setIsConnected(ok)
     }
 
-    checkHeartbeat()
-    const interval = setInterval(checkHeartbeat, 10000)
-
+    check()
+    const timer = setInterval(check, 10000)
     return () => {
       isMounted = false
-      clearInterval(interval)
+      clearInterval(timer)
     }
   }, [])
 
+  // Telemetry fallback if not provided externally
   useEffect(() => {
-    if (externalCpuData !== undefined && externalRamData !== undefined) {
-      return
-    }
+    if (externalCpuData !== undefined && externalRamData !== undefined) return
 
     let isMounted = true
-
     const fetchTelemetry = async () => {
-      const token = getCookieToken()
-      const headers: Record<string, string> = {}
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-
       try {
-        const [cpuRes, ramRes] = await Promise.all([
-          fetch('/api/cpu', { headers, credentials: 'include' }),
-          fetch('/api/ram', { headers, credentials: 'include' }),
-        ])
-
-        if (!cpuRes.ok || !ramRes.ok) {
-          throw new Error('Failed to fetch telemetry')
-        }
-
         const [cpu, ram] = await Promise.all([
-          cpuRes.json() as Promise<CPUInfoResponse>,
-          ramRes.json() as Promise<RAMInfoResponse>,
+          apiFetch<CPUInfoResponse>('/api/cpu'),
+          apiFetch<RAMInfoResponse>('/api/ram'),
         ])
-
         if (isMounted) {
           setInternalCpuData(cpu)
           setInternalRamData(ram)
           setHasError(false)
         }
       } catch {
-        if (isMounted) {
-          setHasError(true)
-        }
+        if (isMounted) setHasError(true)
       }
     }
 
     fetchTelemetry()
-    const interval = setInterval(fetchTelemetry, 5000)
-
+    const timer = setInterval(fetchTelemetry, 5000)
     return () => {
       isMounted = false
-      clearInterval(interval)
+      clearInterval(timer)
     }
   }, [externalCpuData, externalRamData])
 
@@ -156,25 +85,48 @@ export function Sidebar({
     : hasError
       ? 'ERR'
       : '--%'
-  const cpuProgress = cpuData
-    ? Math.min(100, Math.max(0, cpuData.usage_percent))
-    : 0
+  const cpuProgress = cpuData ? Math.min(100, Math.max(0, cpuData.usage_percent)) : 0
 
   const ramValue = ramData
     ? formatRamUsage(ramData.used, ramData.total)
     : hasError
       ? 'ERR'
       : '-- / --'
-  const ramProgress = ramData
-    ? Math.min(100, Math.max(0, ramData.used_percent))
-    : 0
+  const ramProgress = ramData ? Math.min(100, Math.max(0, ramData.used_percent)) : 0
 
-  const statusText = hasError
-    ? 'ERROR'
-    : cpuData && ramData
-      ? 'HEALTHY'
-      : 'SYNCING'
+  const statusText = hasError ? 'ERROR' : cpuData && ramData ? 'HEALTHY' : 'SYNCING'
   const statusColor = hasError ? m3Tokens.error : m3Tokens.primary
+
+  const generalNavItems = [
+    {
+      id: 0,
+      label: 'Dashboard',
+      icon: <LayersIcon sx={{ fontSize: 13, color: activeNav === 0 ? m3Tokens.primary : m3Tokens.outline }} />,
+    },
+    {
+      id: 1,
+      label: 'Projects',
+      icon: <AppsIcon sx={{ fontSize: 13, color: activeNav === 1 ? m3Tokens.primary : m3Tokens.outline }} />,
+    },
+    {
+      id: 2,
+      icon: <StorageIcon sx={{ fontSize: 13, color: activeNav === 2 ? m3Tokens.primary : m3Tokens.outline }} />,
+    },
+  ]
+
+  const managementNavItems = [
+    {
+      id: 3,
+      label: 'Servers',
+      icon: <DnsIcon sx={{ fontSize: 13, color: activeNav === 3 ? m3Tokens.primary : m3Tokens.outline }} />,
+    },
+    {
+      id: 4,
+      label: 'Settings',
+      icon: <SettingsIcon sx={{ fontSize: 13, color: activeNav === 4 ? m3Tokens.primary : m3Tokens.outline }} />,
+    },
+  ]
+
   return (
     <Box
       component="aside"
@@ -204,7 +156,6 @@ export function Sidebar({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Geometric Engine Indicator */}
             <Box
               sx={{
                 width: 32,
@@ -275,7 +226,7 @@ export function Sidebar({
 
         {/* Structural Content Slots */}
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          {/* Structural Group A */}
+          {/* General Group */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography
               sx={{
@@ -290,146 +241,15 @@ export function Sidebar({
               General
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, pt: 0.5 }}>
-              {/* Nav item 0 (Active) */}
-              <Box
-                onClick={() => onSelectNav(0)}
-                sx={{
-                  height: 36,
-                  borderRadius: '8px',
-                  bgcolor: activeNav === 0 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${activeNav === 0 ? m3Tokens.outlineVariant : 'transparent'
-                    }`,
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  px: 1.5,
-                  gap: 1.25,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor:
-                      activeNav === 0
-                        ? m3Tokens.surfaceContainer
-                        : 'rgba(33, 31, 38, 0.6)',
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '4px',
-                    bgcolor: activeNav === 0 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <LayersIcon sx={{ fontSize: 13, color: activeNav === 0 ? m3Tokens.primary : m3Tokens.outline }} />
-                </Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: activeNav === 0 ? 600 : 500,
-                    color: activeNav === 0 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
-                    lineHeight: 1,
-                  }}
-                >
-                  Dashboard
-                </Typography>
-              </Box>
-
-              {/* Nav item 1 */}
-              <Box
-                onClick={() => onSelectNav(1)}
-                sx={{
-                  height: 36,
-                  borderRadius: '8px',
-                  bgcolor: activeNav === 1 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${activeNav === 1 ? m3Tokens.outlineVariant : 'transparent'
-                    }`,
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  px: 1.5,
-                  gap: 1.25,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: 'rgba(33, 31, 38, 0.6)',
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '4px',
-                    bgcolor: activeNav === 1 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <AppsIcon sx={{ fontSize: 13, color: activeNav === 1 ? m3Tokens.primary : m3Tokens.outline }} />
-                </Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: activeNav === 1 ? 600 : 500,
-                    color: activeNav === 1 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
-                    lineHeight: 1,
-                  }}
-                >
-                  Projects
-                </Typography>
-              </Box>
-
-              {/* Nav item 2 */}
-              <Box
-                onClick={() => onSelectNav(2)}
-                sx={{
-                  height: 36,
-                  borderRadius: '8px',
-                  bgcolor: activeNav === 2 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${activeNav === 2 ? m3Tokens.outlineVariant : 'transparent'
-                    }`,
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  px: 1.5,
-                  gap: 1.25,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: 'rgba(33, 31, 38, 0.6)',
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '4px',
-                    bgcolor: activeNav === 2 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <StorageIcon sx={{ fontSize: 13, color: activeNav === 2 ? m3Tokens.primary : m3Tokens.outline }} />
-                </Box>
-                <Box
-                  sx={{
-                    height: 10,
-                    width: 112,
-                    bgcolor: activeNav === 2 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    borderRadius: '4px',
-                  }}
+              {generalNavItems.map((item) => (
+                <SidebarNavItem
+                  key={item.id}
+                  label={item.label}
+                  icon={item.icon}
+                  isActive={activeNav === item.id}
+                  onClick={() => onSelectNav(item.id)}
                 />
-              </Box>
+              ))}
             </Box>
           </Box>
 
@@ -442,7 +262,7 @@ export function Sidebar({
             }}
           />
 
-          {/* Structural Group B */}
+          {/* Management Group */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography
               sx={{
@@ -457,99 +277,15 @@ export function Sidebar({
               Management
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, pt: 0.5 }}>
-              {/* Nav item 3 */}
-              <Box
-                onClick={() => onSelectNav(3)}
-                sx={{
-                  height: 36,
-                  borderRadius: '8px',
-                  bgcolor: activeNav === 3 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${activeNav === 3 ? m3Tokens.outlineVariant : 'transparent'
-                    }`,
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  px: 1.5,
-                  gap: 1.25,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: 'rgba(33, 31, 38, 0.6)',
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '4px',
-                    bgcolor: activeNav === 3 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <DnsIcon sx={{ fontSize: 13, color: activeNav === 3 ? m3Tokens.primary : m3Tokens.outline }} />
-                </Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: activeNav === 3 ? 600 : 500,
-                    color: activeNav === 3 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
-                    lineHeight: 1,
-                  }}
-                >
-                  Servers
-                </Typography>
-              </Box>
-
-              {/* Nav item 4 */}
-              <Box
-                onClick={() => onSelectNav(4)}
-                sx={{
-                  height: 36,
-                  borderRadius: '8px',
-                  bgcolor: activeNav === 4 ? m3Tokens.surfaceContainer : 'transparent',
-                  border: `1px solid ${activeNav === 4 ? m3Tokens.outlineVariant : 'transparent'
-                    }`,
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  px: 1.5,
-                  gap: 1.25,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: 'rgba(33, 31, 38, 0.6)',
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '4px',
-                    bgcolor: activeNav === 4 ? m3Tokens.surfaceContainerHigh : m3Tokens.surfaceContainer,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <SettingsIcon sx={{ fontSize: 13, color: activeNav === 4 ? m3Tokens.primary : m3Tokens.outline }} />
-                </Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: activeNav === 4 ? 600 : 500,
-                    color: activeNav === 4 ? m3Tokens.onSurface : m3Tokens.onSurfaceVariant,
-                    lineHeight: 1,
-                  }}
-                >
-                  Settings
-                </Typography>
-              </Box>
+              {managementNavItems.map((item) => (
+                <SidebarNavItem
+                  key={item.id}
+                  label={item.label}
+                  icon={item.icon}
+                  isActive={activeNav === item.id}
+                  onClick={() => onSelectNav(item.id)}
+                />
+              ))}
             </Box>
           </Box>
         </Box>
@@ -617,25 +353,11 @@ export function Sidebar({
               <span>CPU</span>
               <span>{cpuValue}</span>
             </Box>
-            <Box
-              sx={{
-                height: 6,
-                width: '100%',
-                bgcolor: m3Tokens.surfaceContainer,
-                borderRadius: 9999,
-                overflow: 'hidden',
-              }}
-            >
-              <Box
-                sx={{
-                  height: '100%',
-                  bgcolor: m3Tokens.primary,
-                  width: `${cpuProgress}%`,
-                  borderRadius: 9999,
-                  transition: 'width 0.4s ease',
-                }}
-              />
-            </Box>
+            <MetricProgressBar
+              progress={cpuProgress}
+              height={6}
+              trackColor={m3Tokens.surfaceContainer}
+            />
           </Box>
 
           {/* RAM Telemetry */}
@@ -652,26 +374,12 @@ export function Sidebar({
               <span>RAM</span>
               <span>{ramValue}</span>
             </Box>
-            <Box
-              sx={{
-                height: 6,
-                width: '100%',
-                bgcolor: m3Tokens.surfaceContainer,
-                borderRadius: 9999,
-                overflow: 'hidden',
-              }}
-            >
-              <Box
-                sx={{
-                  height: '100%',
-                  bgcolor: m3Tokens.primary,
-                  opacity: 0.8,
-                  width: `${ramProgress}%`,
-                  borderRadius: 9999,
-                  transition: 'width 0.4s ease',
-                }}
-              />
-            </Box>
+            <MetricProgressBar
+              progress={ramProgress}
+              height={6}
+              opacity={0.8}
+              trackColor={m3Tokens.surfaceContainer}
+            />
           </Box>
         </Box>
 

@@ -7,9 +7,12 @@ import { DashboardHeader } from './DashboardHeader'
 import { MetricsGrid } from './MetricsGrid'
 import { WorkloadAllocations } from './WorkloadAllocations'
 import { NodeDetails } from './NodeDetails'
+import { useTelemetry } from '../../hooks/useTelemetry'
+
 export function ControlPlaneDashboard() {
   const [activeNav, setActiveNav] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
+  const telemetry = useTelemetry()
 
   return (
     <Box
@@ -25,7 +28,12 @@ export function ControlPlaneDashboard() {
       }}
     >
       {/* Structural Left Shell: Minimalist Developer Scaffolding */}
-      <Sidebar activeNav={activeNav} onSelectNav={setActiveNav} />
+      <Sidebar
+        activeNav={activeNav}
+        onSelectNav={setActiveNav}
+        cpuData={telemetry.cpuData}
+        ramData={telemetry.ramData}
+      />
 
       {/* Primary Workspace Canvas Frame */}
       <Box
@@ -61,7 +69,7 @@ export function ControlPlaneDashboard() {
           />
 
           {/* Resource Overview Strip: Telemetry Metrics Grid Slots */}
-          <MetricsGrid />
+          <MetricsGrid telemetry={telemetry} />
 
           {/* Core Layout Grid: Service & Workload Container Slots */}
           <Box

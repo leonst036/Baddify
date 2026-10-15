@@ -1,162 +1,37 @@
-import { useEffect, useState } from 'react'
-import {
-  Box,
-  Card,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Skeleton,
-  Tooltip,
-  Typography,
-} from '@mui/material'
+import { Box, Chip, Skeleton, Typography } from '@mui/material'
 import {
   AccessTime as AccessTimeIcon,
   Dns as DnsIcon,
   Memory as MemoryIcon,
-  Refresh as RefreshIcon,
   Speed as SpeedIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '../../theme/m3Tokens'
-
-interface NodeInfoResponse {
-  hostname: string
-  os: string
-  platform: string
-  platform_version: string
-  kernel_version: string
-  kernel_arch: string
-  uptime: number
-  uptime_formatted: string
-  cpu_model: string
-  logical_cores: number
-  physical_cores: number
-  total_ram: number
-  docker_version: string
-  docker_status: string
-  load_avg_1: number
-  load_avg_5: number
-  load_avg_15: number
-}
-
-function getCookieToken(): string | null {
-  const cookieRow = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith('token='))
-  if (!cookieRow) return null
-  const token = cookieRow.split('=')[1]
-  return token ? decodeURIComponent(token) : null
-}
-
-function formatBytes(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 GB'
-  const gb = bytes / (1024 * 1024 * 1024)
-  return `${gb.toFixed(1)} GB`
-}
+import { apiFetch } from '../../api/client'
+import type { NodeInfoResponse } from '../../api/types'
+import { formatBytes } from '../../utils/formatters'
+import { usePolling } from '../../hooks/usePolling'
+import { DashboardCard, DashboardCardHeader } from './shared'
+import { NodeInfoTile } from './NodeInfoTile'
 
 export function NodeDetails() {
-  const [nodeInfo, setNodeInfo] = useState<NodeInfoResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchNodeInfo = async (isManual = false) => {
-    if (isManual) setRefreshing(true)
-    const token = getCookieToken()
-    const headers: Record<string, string> = {}
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    try {
-      const res = await fetch('/api/node-info', {
-        headers,
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        throw new Error(`Failed to load node info (${res.status})`)
-      }
-      const data: NodeInfoResponse = await res.json()
-      setNodeInfo(data)
-      setError(null)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      setError(message)
-    } finally {
-      setLoading(false)
-      if (isManual) setRefreshing(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchNodeInfo()
-    const interval = setInterval(() => {
-      fetchNodeInfo()
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  const {
+    data: nodeInfo,
+    loading,
+    refreshing,
+    error,
+    refetch,
+  } = usePolling<NodeInfoResponse>(() => apiFetch<NodeInfoResponse>('/api/node-info'), 5000)
 
   return (
-    <Card
-      sx={{
-        borderRadius: `${m3Tokens.cardRadius}px`,
-        bgcolor: m3Tokens.surfaceContainer,
-        border: `1px solid ${m3Tokens.outlineVariant}`,
-        boxShadow: m3Tokens.cardShadow,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header bar */}
-      <Box
-        sx={{
-          px: 3,
-          py: 2,
-          borderBottom: `1px solid ${m3Tokens.outlineVariant}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          bgcolor: 'rgba(33, 31, 38, 0.6)',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <DnsIcon sx={{ fontSize: 18, color: m3Tokens.primary }} />
-          <Typography
-            sx={{
-              fontSize: 13,
-              color: m3Tokens.onSurface,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              fontWeight: 600,
-            }}
-          >
-            Node Details
-          </Typography>
-        </Box>
+    <DashboardCard sx={{ overflow: 'hidden' }}>
+      <DashboardCardHeader
+        title="Node Details"
+        icon={<DnsIcon sx={{ fontSize: 18, color: m3Tokens.primary }} />}
+        onRefresh={refetch}
+        isRefreshing={refreshing}
+        refreshTooltip="Refresh node info"
+      />
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Tooltip title="Refresh node info">
-            <span>
-              <IconButton
-                size="small"
-                onClick={() => fetchNodeInfo(true)}
-                disabled={refreshing}
-                sx={{
-                  color: m3Tokens.onSurfaceVariant,
-                  p: 0.5,
-                  '&:hover': { color: m3Tokens.primary },
-                }}
-              >
-                {refreshing ? (
-                  <CircularProgress size={14} sx={{ color: m3Tokens.primary }} />
-                ) : (
-                  <RefreshIcon sx={{ fontSize: 16 }} />
-                )}
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      {/* Body content */}
       <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {loading ? (
           <>
@@ -179,13 +54,9 @@ export function NodeDetails() {
           </Box>
         ) : nodeInfo ? (
           <>
-            {/* Hostname & Operating System */}
-            <Box
+            {/* Host & Kernel */}
+            <NodeInfoTile
               sx={{
-                p: 1.75,
-                borderRadius: '12px',
-                bgcolor: m3Tokens.surfaceContainerLow,
-                border: `1px solid ${m3Tokens.outlineVariant}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -225,6 +96,7 @@ export function NodeDetails() {
                   {nodeInfo.platform} {nodeInfo.platform_version} ({nodeInfo.kernel_arch})
                 </Typography>
               </Box>
+
               <Box
                 sx={{
                   px: 1.25,
@@ -239,20 +111,10 @@ export function NodeDetails() {
               >
                 Linux {nodeInfo.kernel_version ? nodeInfo.kernel_version.split('-')[0] : ''}
               </Box>
-            </Box>
+            </NodeInfoTile>
 
             {/* Hardware Profile & CPU */}
-            <Box
-              sx={{
-                p: 1.75,
-                borderRadius: '12px',
-                bgcolor: m3Tokens.surfaceContainerLow,
-                border: `1px solid ${m3Tokens.outlineVariant}`,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0.75,
-              }}
-            >
+            <NodeInfoTile sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   <MemoryIcon sx={{ fontSize: 15, color: m3Tokens.secondary }} />
@@ -308,7 +170,7 @@ export function NodeDetails() {
                   }}
                 />
               </Box>
-            </Box>
+            </NodeInfoTile>
 
             {/* Load Average & Uptime */}
             <Box
@@ -319,17 +181,7 @@ export function NodeDetails() {
               }}
             >
               {/* Uptime Box */}
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: '12px',
-                  bgcolor: m3Tokens.surfaceContainerLow,
-                  border: `1px solid ${m3Tokens.outlineVariant}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.5,
-                }}
-              >
+              <NodeInfoTile sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <AccessTimeIcon sx={{ fontSize: 13, color: m3Tokens.onSurfaceVariant }} />
                   <Typography
@@ -354,20 +206,10 @@ export function NodeDetails() {
                 >
                   {nodeInfo.uptime_formatted || '--'}
                 </Typography>
-              </Box>
+              </NodeInfoTile>
 
               {/* Docker Engine Box */}
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: '12px',
-                  bgcolor: m3Tokens.surfaceContainerLow,
-                  border: `1px solid ${m3Tokens.outlineVariant}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.5,
-                }}
-              >
+              <NodeInfoTile sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.5 }}>
                 <Typography
                   sx={{
                     fontSize: 10,
@@ -389,16 +231,13 @@ export function NodeDetails() {
                 >
                   v{nodeInfo.docker_version || 'Unknown'}
                 </Typography>
-              </Box>
+              </NodeInfoTile>
             </Box>
 
             {/* Load Average Strip */}
-            <Box
+            <NodeInfoTile
               sx={{
                 p: 1.5,
-                borderRadius: '12px',
-                bgcolor: m3Tokens.surfaceContainerLow,
-                border: `1px solid ${m3Tokens.outlineVariant}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -432,11 +271,11 @@ export function NodeDetails() {
                   {nodeInfo.load_avg_15.toFixed(2)}
                 </Typography>
               </Box>
-            </Box>
+            </NodeInfoTile>
           </>
         ) : null}
       </Box>
-    </Card>
+    </DashboardCard>
   )
 }
 
