@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
-import { m3Tokens } from '../../theme/m3Tokens'
-import { formatBytes, formatRate } from '../../utils/formatters'
-import { useTelemetry, type TelemetryState } from '../../hooks/useTelemetry'
+import { m3Tokens } from '../../../theme/m3Tokens'
+import { formatBytes, formatRate } from '../../../utils/formatters'
+import { useTelemetry, type TelemetryState } from '../../../hooks/useTelemetry'
 import { MetricCard } from './MetricCard'
 import { DiskMetricCard } from './DiskMetricCard'
 

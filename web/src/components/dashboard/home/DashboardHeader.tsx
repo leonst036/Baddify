@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import { Search as SearchIcon } from '@mui/icons-material'
-import { m3Tokens } from '../../theme/m3Tokens'
+import { m3Tokens } from '../../../theme/m3Tokens'
 
 interface DashboardHeaderProps {
   searchQuery: string
@@ -48,7 +48,6 @@ export function DashboardHeader({
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        {/* MuiOutlinedInput Slot */}
         <Box
           sx={{
             height: 38,
@@ -86,7 +85,6 @@ export function DashboardHeader({
             }}
           />
         </Box>
-
       </Box>
     </Box>
   )

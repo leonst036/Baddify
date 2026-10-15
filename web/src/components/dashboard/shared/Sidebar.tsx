@@ -7,11 +7,11 @@ import {
   Settings as SettingsIcon,
   Storage as StorageIcon,
 } from '@mui/icons-material'
-import { m3Tokens } from '../../theme/m3Tokens'
-import { apiFetch, checkHeartbeat } from '../../api/client'
-import type { CPUInfoResponse, RAMInfoResponse } from '../../api/types'
-import { formatRamUsage } from '../../utils/formatters'
-import { MetricProgressBar } from './shared'
+import { m3Tokens } from '../../../theme/m3Tokens'
+import { apiFetch, checkHeartbeat } from '../../../api/client'
+import type { CPUInfoResponse, RAMInfoResponse } from '../../../api/types'
+import { formatRamUsage } from '../../../utils/formatters'
+import { MetricProgressBar } from './MetricProgressBar'
 import { SidebarNavItem } from './SidebarNavItem'
 
 interface SidebarProps {

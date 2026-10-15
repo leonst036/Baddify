@@ -5,12 +5,12 @@ import {
   Memory as MemoryIcon,
   Speed as SpeedIcon,
 } from '@mui/icons-material'
-import { m3Tokens } from '../../theme/m3Tokens'
-import { apiFetch } from '../../api/client'
-import type { NodeInfoResponse } from '../../api/types'
-import { formatBytes } from '../../utils/formatters'
-import { usePolling } from '../../hooks/usePolling'
-import { DashboardCard, DashboardCardHeader } from './shared'
+import { m3Tokens } from '../../../theme/m3Tokens'
+import { apiFetch } from '../../../api/client'
+import type { NodeInfoResponse } from '../../../api/types'
+import { formatBytes } from '../../../utils/formatters'
+import { usePolling } from '../../../hooks/usePolling'
+import { DashboardCard, DashboardCardHeader } from '../shared'
 import { NodeInfoTile } from './NodeInfoTile'
 
 export function NodeDetails() {

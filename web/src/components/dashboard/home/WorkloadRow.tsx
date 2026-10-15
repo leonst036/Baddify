@@ -5,8 +5,8 @@ import {
   RestartAlt as RestartIcon,
   Stop as StopIcon,
 } from '@mui/icons-material'
-import { m3Tokens } from '../../theme/m3Tokens'
-import type { ContainerItem } from '../../api/types'
+import { m3Tokens } from '../../../theme/m3Tokens'
+import type { ContainerItem } from '../../../api/types'
 
 interface WorkloadRowProps {
   item: ContainerItem

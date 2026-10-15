@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material'
-import { m3Tokens } from '../../theme/m3Tokens'
-import { DashboardCard, MetricProgressBar } from './shared'
+import { m3Tokens } from '../../../theme/m3Tokens'
+import { DashboardCard, MetricProgressBar } from '../shared'
 
 export interface DiskMetricCardProps {
   title: string

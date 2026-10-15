@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Box } from '@mui/material'
 import { m3Tokens } from '../../theme/m3Tokens'
-import { Sidebar } from './Sidebar'
-import { TopBar } from './TopBar'
-import { DashboardHeader } from './DashboardHeader'
-import { MetricsGrid } from './MetricsGrid'
-import { WorkloadAllocations } from './WorkloadAllocations'
-import { NodeDetails } from './NodeDetails'
 import { useTelemetry } from '../../hooks/useTelemetry'
+import { Sidebar, TopBar } from './shared'
+import {
+  DashboardHeader,
+  MetricsGrid,
+  NodeDetails,
+  WorkloadAllocations,
+} from './home'
 
 export function ControlPlaneDashboard() {
   const [activeNav, setActiveNav] = useState(0)
@@ -27,7 +28,7 @@ export function ControlPlaneDashboard() {
         userSelect: 'none',
       }}
     >
-      {/* Structural Left Shell: Minimalist Developer Scaffolding */}
+      {/* Structural Left Shell: Shared Navigation Sidebar */}
       <Sidebar
         activeNav={activeNav}
         onSelectNav={setActiveNav}
@@ -47,7 +48,7 @@ export function ControlPlaneDashboard() {
           overflow: 'hidden',
         }}
       >
-        {/* Top Bar Frame: Minimal Shell Structure */}
+        {/* Top Bar Frame: Shared Shell Header */}
         <TopBar />
 
         {/* Main Content Area: High-Density Developer Viewport */}
@@ -62,7 +63,7 @@ export function ControlPlaneDashboard() {
             gap: 3,
           }}
         >
-          {/* Page Header Zone: Scaffolding Header & Primary Action Slot */}
+          {/* Page Header Zone: Home Scaffolding Header & Primary Action Slot */}
           <DashboardHeader
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}

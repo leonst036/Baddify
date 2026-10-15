@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Box, Chip, Skeleton, Typography } from '@mui/material'
 import { Inventory2 as ContainerIcon } from '@mui/icons-material'
-import { m3Tokens } from '../../theme/m3Tokens'
-import { apiFetch } from '../../api/client'
-import type { ContainerItem } from '../../api/types'
-import { usePolling } from '../../hooks/usePolling'
-import { DashboardCard, DashboardCardHeader } from './shared'
+import { m3Tokens } from '../../../theme/m3Tokens'
+import { apiFetch } from '../../../api/client'
+import type { ContainerItem } from '../../../api/types'
+import { usePolling } from '../../../hooks/usePolling'
+import { DashboardCard, DashboardCardHeader } from '../shared'
 import { WorkloadRow } from './WorkloadRow'
 
 export function WorkloadAllocations() {

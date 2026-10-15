@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
-import { m3Tokens } from '../../theme/m3Tokens'
+import { m3Tokens } from '../../../theme/m3Tokens'
 
 interface SidebarNavItemProps {
   label?: string

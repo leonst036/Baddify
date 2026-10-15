@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { SxProps, Theme } from '@mui/material'
 import { Box } from '@mui/material'
-import { m3Tokens } from '../../theme/m3Tokens'
+import { m3Tokens } from '../../../theme/m3Tokens'
 
 interface NodeInfoTileProps {
   children: ReactNode
