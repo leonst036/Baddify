@@ -19,7 +19,7 @@ import {
 } from '@mui/icons-material'
 import { m3Tokens } from '../../../theme/m3Tokens'
 import { Footer } from '../../footer/footer'
-import { NewProjects } from '../../projects/NewProjects'
+import { NewProjects } from './NewProjects'
 import { ProjectsHeader } from './ProjectsHeader'
 import { getAuthHeaders } from '../../../api/client'
 

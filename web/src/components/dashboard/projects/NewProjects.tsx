@@ -18,9 +18,9 @@ import {
     DeleteOutlined as DeleteIcon,
     VpnKeyOutlined as KeyIcon,
 } from '@mui/icons-material'
-import { m3Tokens } from '../../theme/m3Tokens'
-import { Footer } from '../footer/footer'
-import { getAuthHeaders } from '../../api/client'
+import { m3Tokens } from '../../../theme/m3Tokens'
+import { Footer } from '../../footer/footer'
+import { getAuthHeaders } from '../../../api/client'
 
 interface NewProjectsProps {
     onBack?: () => void
@@ -36,8 +36,7 @@ export function NewProjects({ onBack }: NewProjectsProps) {
     const [projectDescription, setProjectDescription] = useState('')
     const [environment] = useState('production')
     const [envVars, setEnvVars] = useState<EnvVar[]>([
-        { key: 'PORT', value: '8080' },
-        { key: 'NODE_ENV', value: 'production' },
+        { key: '', value: '' },
     ])
 
     const handleAddEnv = () => {
