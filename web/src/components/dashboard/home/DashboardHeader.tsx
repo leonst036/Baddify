@@ -43,7 +43,7 @@ export function DashboardHeader({
             m: 0,
           }}
         >
-          See the status of your server
+          See the stats of your server
         </Typography>
       </Box>
 

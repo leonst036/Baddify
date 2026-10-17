@@ -21,6 +21,7 @@ import { m3Tokens } from '../../../theme/m3Tokens'
 import { Footer } from '../../footer/footer'
 import { NewProjects } from './NewProjects'
 import { ProjectsHeader } from './ProjectsHeader'
+import { EnviromentsView } from './EnviromentsView'
 import { getAuthHeaders } from '../../../api/client'
 
 export interface ProjectItem {
@@ -36,6 +37,8 @@ export interface ProjectItem {
 interface ProjectsViewProps {
   isCreating?: boolean
   onToggleCreating?: (creating: boolean) => void
+  selectedProject?: ProjectItem | null
+  onSelectProject?: (project: ProjectItem | null) => void
 }
 
 function formatDate(dateStr?: string): string {
@@ -56,8 +59,11 @@ function formatDate(dateStr?: string): string {
 export function ProjectsView({
   isCreating: externalIsCreating,
   onToggleCreating,
+  selectedProject: externalSelectedProject,
+  onSelectProject,
 }: ProjectsViewProps = {}) {
   const [internalIsCreating, setInternalIsCreating] = useState(false)
+  const [internalSelectedProject, setInternalSelectedProject] = useState<ProjectItem | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -66,6 +72,10 @@ export function ProjectsView({
 
   const isCreating = externalIsCreating !== undefined ? externalIsCreating : internalIsCreating
   const setIsCreating = onToggleCreating || setInternalIsCreating
+
+  const selectedProject =
+    externalSelectedProject !== undefined ? externalSelectedProject : internalSelectedProject
+  const setSelectedProject = onSelectProject || setInternalSelectedProject
 
   const fetchProjects = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) {
@@ -97,8 +107,37 @@ export function ProjectsView({
   }, [])
 
   useEffect(() => {
-    fetchProjects()
-  }, [fetchProjects])
+    let isMounted = true
+    const loadInitial = async () => {
+      try {
+        const res = await fetch('/api/projects', {
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        })
+        if (!res.ok) {
+          throw new Error(`Failed to load projects (${res.status})`)
+        }
+        const data = await res.json()
+        if (isMounted) {
+          setProjects(Array.isArray(data) ? data : [])
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          const msg = err instanceof Error ? err.message : 'Failed to fetch projects'
+          setError(msg)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadInitial()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   // Filter projects based on search query
   const filteredProjects = useMemo(() => {
@@ -120,6 +159,15 @@ export function ProjectsView({
           setIsCreating(false)
           fetchProjects(true)
         }}
+      />
+    )
+  }
+
+  if (selectedProject) {
+    return (
+      <EnviromentsView
+        project={selectedProject}
+        onBack={() => setSelectedProject(null)}
       />
     )
   }
@@ -375,6 +423,7 @@ export function ProjectsView({
             return (
               <Box
                 key={project.id || project.name}
+                onClick={() => setSelectedProject(project)}
                 sx={{
                   p: 2.5,
                   borderRadius: '14px',

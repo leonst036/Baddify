@@ -4,11 +4,12 @@ import { m3Tokens } from '../../theme/m3Tokens'
 import { useTelemetry } from '../../hooks/useTelemetry'
 import { DashboardCard, Sidebar, TopBar } from './shared'
 import { HomeView } from './home'
-import { ProjectsView } from './projects'
+import { ProjectsView, type ProjectItem } from './projects'
 
 export function ControlPlaneDashboard() {
   const [activeNav, setActiveNav] = useState(0)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const telemetry = useTelemetry()
 
@@ -16,6 +17,7 @@ export function ControlPlaneDashboard() {
     setActiveNav(index)
     if (index !== 1) {
       setIsCreatingProject(false)
+      setSelectedProject(null)
     }
   }
 
@@ -55,10 +57,22 @@ export function ControlPlaneDashboard() {
         {/* Top Bar Frame: Shared Shell Header with Active Section Badge */}
         <TopBar
           activeNav={activeNav}
-          subTitle={activeNav === 1 && isCreatingProject ? 'New Projects' : undefined}
+          subTitle={
+            activeNav === 1
+              ? isCreatingProject
+                ? 'New Projects'
+                : selectedProject
+                  ? selectedProject.name
+                  : undefined
+              : undefined
+          }
           onTitleClick={
-            activeNav === 1 && isCreatingProject
-              ? () => setIsCreatingProject(false)
+            activeNav === 1
+              ? isCreatingProject
+                ? () => setIsCreatingProject(false)
+                : selectedProject
+                  ? () => setSelectedProject(null)
+                  : undefined
               : undefined
           }
         />
@@ -85,7 +99,14 @@ export function ControlPlaneDashboard() {
           {activeNav === 1 && (
             <ProjectsView
               isCreating={isCreatingProject}
-              onToggleCreating={setIsCreatingProject}
+              onToggleCreating={(creating) => {
+                setIsCreatingProject(creating)
+                if (creating) {
+                  setSelectedProject(null)
+                }
+              }}
+              selectedProject={selectedProject}
+              onSelectProject={setSelectedProject}
             />
           )}
 
