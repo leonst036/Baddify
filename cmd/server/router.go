@@ -26,6 +26,7 @@ func NewRouter(dm *docker.Manager, cr *caddy.Router, db *database.MongoManager) 
 	routes.RegisterAboutServerRoutes(r, dm)
 	routes.RegisterHeartbeatRoutes(r)
 	routes.RegisterProjectRoutes(r, dm, db)
+	routes.RegisterEnviromentsRoutes(r, dm, cr, db)
 
 	r.NotFound(routes.NotFoundHandler)
 

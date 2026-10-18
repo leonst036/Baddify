@@ -20,6 +20,8 @@ var (
 	ErrDeploymentNotFound = errors.New("deployment not found")
 	ErrProjectNotFound    = errors.New("project not found")
 	ErrProjectAlreadyExists = errors.New("project already exists")
+	ErrEnvironmentNotFound    = errors.New("environment not found")
+	ErrEnvironmentAlreadyExists = errors.New("environment already exists")
 )
 
 type User struct {
@@ -54,12 +56,35 @@ type Project struct {
 	UpdatedAt   time.Time     `bson:"updated_at" json:"updated_at"`
 }
 
+type EnvVariable struct {
+	Key      string `bson:"key" json:"key"`
+	Value    string `bson:"value" json:"value"`
+	IsSecret bool   `bson:"is_secret,omitempty" json:"isSecret,omitempty"`
+}
+
+type Environment struct {
+	ID                bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	UUID              string        `bson:"uuid" json:"uuid"`
+	ProjectUUID       string        `bson:"project_uuid" json:"project_uuid"`
+	Name              string        `bson:"name" json:"name"`
+	Type              string        `bson:"type" json:"type"`
+	Status            string        `bson:"status" json:"status"`
+	Branch            string        `bson:"branch" json:"branch"`
+	LastCommitHash    string        `bson:"last_commit_hash" json:"lastCommitHash"`
+	LastCommitMessage string        `bson:"last_commit_message" json:"lastCommitMessage"`
+	Description       string        `bson:"description" json:"description"`
+	Variables         []EnvVariable `bson:"variables" json:"variables"`
+	CreatedAt         time.Time     `bson:"created_at" json:"createdAt"`
+	UpdatedAt         time.Time     `bson:"updated_at" json:"updatedAt"`
+}
+
 type MongoManager struct {
-	Client      *mongo.Client
-	Database    *mongo.Database
-	Users       *mongo.Collection
-	Deployments *mongo.Collection
-	Projects    *mongo.Collection
+	Client       *mongo.Client
+	Database     *mongo.Database
+	Users        *mongo.Collection
+	Deployments  *mongo.Collection
+	Projects     *mongo.Collection
+	Environments *mongo.Collection
 }
 
 // NewMongoManager initializes MongoDB connection and collections
@@ -94,11 +119,12 @@ func NewMongoManager(uri, dbName string) (*MongoManager, error) {
 
 	db := client.Database(dbName)
 	manager := &MongoManager{
-		Client:      client,
-		Database:    db,
-		Users:       db.Collection("users"),
-		Deployments: db.Collection("deployments"),
-		Projects:    db.Collection("projects"),
+		Client:       client,
+		Database:     db,
+		Users:        db.Collection("users"),
+		Deployments:  db.Collection("deployments"),
+		Projects:     db.Collection("projects"),
+		Environments: db.Collection("environments"),
 	}
 
 	if err := manager.ensureIndexes(ctx); err != nil {
@@ -165,6 +191,29 @@ func (m *MongoManager) ensureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	if err := m.EnsureEnvironmentUUIDs(ctx); err != nil {
+		return err
+	}
+
+	envUUIDIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "uuid", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+	if _, err := m.Environments.Indexes().CreateOne(ctx, envUUIDIndex); err != nil {
+		return err
+	}
+
+	envProjectIndex := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "project_uuid", Value: 1},
+			{Key: "name", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}
+	if _, err := m.Environments.Indexes().CreateOne(ctx, envProjectIndex); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -192,6 +241,43 @@ func (m *MongoManager) EnsureProjectUUIDs(ctx context.Context) error {
 
 		newUUID := uuid.NewString()
 		_, err := m.Projects.UpdateByID(ctx, p.ID, bson.M{
+			"$set": bson.M{
+				"uuid":       newUUID,
+				"updated_at": time.Now().UTC(),
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return cursor.Err()
+}
+
+// EnsureEnvironmentUUIDs migrates any environments missing a UUID by assigning a new unique UUID.
+func (m *MongoManager) EnsureEnvironmentUUIDs(ctx context.Context) error {
+	filter := bson.M{
+		"$or": []bson.M{
+			{"uuid": bson.M{"$exists": false}},
+			{"uuid": ""},
+			{"uuid": nil},
+		},
+	}
+
+	cursor, err := m.Environments.Find(ctx, filter)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var e Environment
+		if err := cursor.Decode(&e); err != nil {
+			return err
+		}
+
+		newUUID := uuid.NewString()
+		_, err := m.Environments.UpdateByID(ctx, e.ID, bson.M{
 			"$set": bson.M{
 				"uuid":       newUUID,
 				"updated_at": time.Now().UTC(),
@@ -554,6 +640,148 @@ func (m *MongoManager) DeleteProjectByUUID(ctx context.Context, projectUUID stri
 	}
 	if res.DeletedCount == 0 {
 		return ErrProjectNotFound
+	}
+	return nil
+}
+
+// Environment methods
+
+func (m *MongoManager) SaveEnvironment(ctx context.Context, env *Environment) error {
+	now := time.Now().UTC()
+	env.UpdatedAt = now
+
+	if env.UUID == "" {
+		env.UUID = uuid.NewString()
+	}
+
+	if env.Variables == nil {
+		env.Variables = []EnvVariable{}
+	}
+
+	if env.ID.IsZero() {
+		env.CreatedAt = now
+		res, err := m.Environments.InsertOne(ctx, env)
+		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				return ErrEnvironmentAlreadyExists
+			}
+			return err
+		}
+		if oid, ok := res.InsertedID.(bson.ObjectID); ok {
+			env.ID = oid
+		}
+		return nil
+	}
+
+	update := bson.M{
+		"$set": env,
+	}
+	res, err := m.Environments.UpdateByID(ctx, env.ID, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return ErrEnvironmentNotFound
+	}
+	return nil
+}
+
+func (m *MongoManager) GetProjectEnviroments(ctx context.Context, projectIdentifier string) ([]Environment, error) {
+	projectUUID := projectIdentifier
+
+	if proj, err := m.GetProjectByUUID(ctx, projectIdentifier); err == nil && proj != nil {
+		projectUUID = proj.UUID
+	} else if proj, err := m.GetProjectByName(ctx, projectIdentifier); err == nil && proj != nil {
+		projectUUID = proj.UUID
+	} else if objID, err := bson.ObjectIDFromHex(projectIdentifier); err == nil {
+		if proj, err := m.GetProjectByID(ctx, objID); err == nil && proj != nil {
+			projectUUID = proj.UUID
+		}
+	}
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"project_uuid": projectUUID},
+			{"project_uuid": projectIdentifier},
+		},
+	}
+
+	cursor, err := m.Environments.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var envs []Environment
+	if err := cursor.All(ctx, &envs); err != nil {
+		return nil, err
+	}
+
+	if envs == nil {
+		envs = []Environment{}
+	}
+
+	for i := range envs {
+		if envs[i].Variables == nil {
+			envs[i].Variables = []EnvVariable{}
+		}
+	}
+
+	return envs, nil
+}
+
+func (m *MongoManager) GetProjectEnvironments(ctx context.Context, projectIdentifier string) ([]Environment, error) {
+	return m.GetProjectEnviroments(ctx, projectIdentifier)
+}
+
+func (m *MongoManager) GetEnvironmentByUUID(ctx context.Context, envUUID string) (*Environment, error) {
+	var env Environment
+	err := m.Environments.FindOne(ctx, bson.M{"uuid": envUUID}).Decode(&env)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrEnvironmentNotFound
+		}
+		return nil, err
+	}
+	if env.Variables == nil {
+		env.Variables = []EnvVariable{}
+	}
+	return &env, nil
+}
+
+func (m *MongoManager) GetEnvironmentByID(ctx context.Context, id bson.ObjectID) (*Environment, error) {
+	var env Environment
+	err := m.Environments.FindOne(ctx, bson.M{"_id": id}).Decode(&env)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrEnvironmentNotFound
+		}
+		return nil, err
+	}
+	if env.Variables == nil {
+		env.Variables = []EnvVariable{}
+	}
+	return &env, nil
+}
+
+func (m *MongoManager) DeleteEnvironment(ctx context.Context, id bson.ObjectID) error {
+	res, err := m.Environments.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return ErrEnvironmentNotFound
+	}
+	return nil
+}
+
+func (m *MongoManager) DeleteEnvironmentByUUID(ctx context.Context, envUUID string) error {
+	res, err := m.Environments.DeleteOne(ctx, bson.M{"uuid": envUUID})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return ErrEnvironmentNotFound
 	}
 	return nil
 }
