@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
   Box,
   Button,
   Typography,
-  Chip,
   IconButton,
   Tooltip,
   TextField,
@@ -11,9 +10,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  InputAdornment,
-  Divider,
   Alert,
+  CircularProgress,
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
@@ -22,21 +20,18 @@ import {
   Search as SearchIcon,
   ContentCopy as ContentCopyIcon,
   VpnKeyOutlined as KeyIcon,
-  AccountTreeOutlined as BranchIcon,
-  RocketLaunchOutlined as RocketIcon,
+  LayersOutlined as LayersIcon,
   VisibilityOutlined as VisibilityIcon,
   VisibilityOffOutlined as VisibilityOffIcon,
   Close as CloseIcon,
   DeleteOutlined as DeleteIcon,
-  TerminalOutlined as TerminalIcon,
   FolderOutlined as FolderIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '../../../theme/m3Tokens'
 import { Footer } from '../../footer/footer'
+import { getAuthHeaders } from '../../../api/client'
 import type { ProjectItem } from './ProjectsView'
-
-export type EnvironmentType = 'production' | 'staging' | 'development' | 'preview'
-export type EnvironmentStatus = 'healthy' | 'deploying' | 'stopped' | 'failed'
+import { CreateEnvironmentDialog } from './CreateEnviroment'
 
 export interface EnvVariable {
   key: string
@@ -46,12 +41,8 @@ export interface EnvVariable {
 
 export interface ProjectEnvironment {
   id: string
+  uuid?: string
   name: string
-  type: EnvironmentType
-  status: EnvironmentStatus
-  branch: string
-  lastCommitHash: string
-  lastCommitMessage: string
   updatedAt: string
   variables: EnvVariable[]
   description: string
@@ -62,40 +53,64 @@ interface EnviromentsViewProps {
   onBack?: () => void
 }
 
-// Generate default environments for a project
-function getDefaultEnvironments(projectName: string): ProjectEnvironment[] {
-  const safeName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-') || 'app'
-
-  return [
-    {
-      id: 'env-prod',
-      name: 'demo',
-      type: 'production',
-      status: 'healthy',
-      branch: 'main',
-      lastCommitHash: '7b2a9e1',
-      lastCommitMessage: 'release: stable production deployment',
-      updatedAt: '15m ago',
-      variables: [
-        { key: 'NODE_ENV', value: 'production', isSecret: false },
-        { key: 'PORT', value: '8080', isSecret: false },
-        { key: 'DATABASE_URL', value: `mongodb+srv://${safeName}-prod.baddify.internal:27017`, isSecret: true },
-        { key: 'JWT_SECRET', value: 'prod_jwt_super_secret_key_99182', isSecret: true },
-      ],
-      description: 'Production environment'
-    }
-  ]
-}
-
 export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   const currentProjectName = project?.name || 'Default Project'
+  const projectId = project?.uuid || project?.id || project?.name
 
-  const [environments, setEnvironments] = useState<ProjectEnvironment[]>(() =>
-    getDefaultEnvironments(currentProjectName)
-  )
+  const [environments, setEnvironments] = useState<ProjectEnvironment[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+
+  const fetchEnvironments = useCallback(async (isManualRefresh = false) => {
+    if (!projectId) {
+      setEnvironments([])
+      setIsLoading(false)
+      return
+    }
+
+    if (isManualRefresh) {
+      setIsRefreshing(true)
+    } else {
+      setIsLoading(true)
+    }
+    setError(null)
+
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/environments`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed to load environments (${res.status})`)
+      }
+
+      const data = await res.json()
+      const normalized: ProjectEnvironment[] = (Array.isArray(data) ? data : []).map(
+        (e: Partial<ProjectEnvironment>) => ({
+          id: e.id || e.uuid || `env-${Math.random().toString(36).substring(2, 9)}`,
+          name: e.name || 'unnamed',
+          updatedAt: e.updatedAt || 'Recently',
+          variables: Array.isArray(e.variables) ? e.variables : [],
+          description: e.description || '',
+        })
+      )
+      setEnvironments(normalized)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to fetch environments'
+      setError(msg)
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    void fetchEnvironments(false)
+  }, [fetchEnvironments])
 
   // Variables modal state
   const [activeEnvForVars, setActiveEnvForVars] = useState<ProjectEnvironment | null>(null)
@@ -107,22 +122,12 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   // Create environment dialog state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newEnvName, setNewEnvName] = useState('')
-  const [newEnvType, setNewEnvType] = useState<EnvironmentType>('development')
-  const [newEnvBranch, setNewEnvBranch] = useState('main')
-
-  // Redeployment feedback
-  const [redeployingId, setRedeployingId] = useState<string | null>(null)
 
   // Filter environments by search query
   const filteredEnvironments = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return environments
-    return environments.filter(
-      (env) =>
-        env.name.toLowerCase().includes(q) ||
-        env.branch.toLowerCase().includes(q) ||
-        env.type.toLowerCase().includes(q)
-    )
+    return environments.filter((env) => env.name.toLowerCase().includes(q))
   }, [environments, searchQuery])
 
   const handleCopy = (text: string, label: string) => {
@@ -132,33 +137,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   }
 
   const handleRefresh = () => {
-    setIsRefreshing(true)
-    setTimeout(() => {
-      setIsRefreshing(false)
-    }, 500)
-  }
-
-  const handleRedeploy = (envId: string) => {
-    setRedeployingId(envId)
-    setEnvironments((prev) =>
-      prev.map((e) => (e.id === envId ? { ...e, status: 'deploying' } : e))
-    )
-
-    setTimeout(() => {
-      setEnvironments((prev) =>
-        prev.map((e) =>
-          e.id === envId
-            ? {
-              ...e,
-              status: 'healthy',
-              updatedAt: 'Just now',
-              lastCommitHash: Math.random().toString(16).substring(2, 9),
-            }
-            : e
-        )
-      )
-      setRedeployingId(null)
-    }, 1800)
+    void fetchEnvironments(true)
   }
 
   // Toggle variable secret visibility
@@ -179,9 +158,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
     ]
 
     setEnvironments((prev) =>
-      prev.map((e) =>
-        e.id === activeEnvForVars.id ? { ...e, variables: updatedVars } : e
-      )
+      prev.map((e) => (e.id === activeEnvForVars.id ? { ...e, variables: updatedVars } : e))
     )
 
     setActiveEnvForVars((prev) => (prev ? { ...prev, variables: updatedVars } : null))
@@ -196,9 +173,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
     const updatedVars = activeEnvForVars.variables.filter((v) => v.key !== keyToDelete)
 
     setEnvironments((prev) =>
-      prev.map((e) =>
-        e.id === activeEnvForVars.id ? { ...e, variables: updatedVars } : e
-      )
+      prev.map((e) => (e.id === activeEnvForVars.id ? { ...e, variables: updatedVars } : e))
     )
     setActiveEnvForVars((prev) => (prev ? { ...prev, variables: updatedVars } : null))
   }
@@ -212,23 +187,17 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
     const newEnv: ProjectEnvironment = {
       id: `env-${Date.now()}`,
       name: safeEnvName,
-      type: newEnvType,
-      status: 'healthy',
-      branch: newEnvBranch.trim() || 'main',
-      lastCommitHash: Math.random().toString(16).substring(2, 9),
-      lastCommitMessage: 'initial environment setup',
       updatedAt: 'Just now',
       variables: [
         { key: 'NODE_ENV', value: safeEnvName, isSecret: false },
         { key: 'PORT', value: '8080', isSecret: false },
       ],
-      description: 'Production environment'
+      description: 'Project environment',
     }
 
     setEnvironments((prev) => [...prev, newEnv])
     setIsCreateOpen(false)
     setNewEnvName('')
-    setNewEnvBranch('main')
   }
 
   // Delete environment
@@ -238,35 +207,6 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
       if (activeEnvForVars?.id === envId) {
         setActiveEnvForVars(null)
       }
-    }
-  }
-
-  const getTypeChipColor = (type: EnvironmentType) => {
-    switch (type) {
-      case 'production':
-        return {
-          bg: 'rgba(208, 188, 255, 0.15)',
-          color: m3Tokens.primary,
-          border: 'rgba(208, 188, 255, 0.3)',
-        }
-      case 'staging':
-        return {
-          bg: 'rgba(255, 180, 171, 0.12)',
-          color: '#ffb4ab',
-          border: 'rgba(255, 180, 171, 0.25)',
-        }
-      case 'preview':
-        return {
-          bg: 'rgba(168, 199, 250, 0.12)',
-          color: m3Tokens.secondary,
-          border: 'rgba(168, 199, 250, 0.25)',
-        }
-      default:
-        return {
-          bg: 'rgba(202, 196, 208, 0.08)',
-          color: m3Tokens.onSurfaceVariant,
-          border: m3Tokens.outlineVariant,
-        }
     }
   }
 
@@ -368,7 +308,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
                 m: 0,
               }}
             >
-              Configure deployment branches
+              Manage environment settings and variables
             </Typography>
           </Box>
         </Box>
@@ -488,8 +428,53 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
         </Alert>
       )}
 
+      {/* Error Feedback Alert */}
+      {error && (
+        <Alert
+          severity="error"
+          sx={{
+            bgcolor: 'rgba(255, 180, 171, 0.1)',
+            color: '#FFB4AB',
+            border: '1px solid rgba(255, 180, 171, 0.3)',
+            borderRadius: '8px',
+            py: 0.5,
+          }}
+        >
+          {error}
+        </Alert>
+      )}
+
       {/* Environments Grid */}
-      {filteredEnvironments.length === 0 ? (
+      {isLoading ? (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              lg: 'repeat(auto-fill, minmax(380px, 1fr))',
+            },
+            gap: 2.5,
+          }}
+        >
+          {[1, 2, 3].map((i) => (
+            <Box
+              key={i}
+              sx={{
+                p: 3,
+                borderRadius: '16px',
+                bgcolor: m3Tokens.surfaceContainer,
+                border: `1px solid ${m3Tokens.outlineVariant}`,
+                height: 180,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <CircularProgress size={30} sx={{ color: m3Tokens.primary }} />
+            </Box>
+          ))}
+        </Box>
+      ) : filteredEnvironments.length === 0 ? (
         <Box
           sx={{
             py: 6,
@@ -510,8 +495,8 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
           </Typography>
           <Typography sx={{ fontSize: 13, color: m3Tokens.onSurfaceVariant, maxWidth: 360 }}>
             {searchQuery
-              ? `No environments match "${searchQuery}". Clear your search or create a new one.`
-              : 'Create an environment to deploy and manage services for this project.'}
+              ? `No environments match "${searchQuery}".`
+              : 'Create an environment to configure settings for this project.'}
           </Typography>
           {searchQuery ? (
             <Button
@@ -525,7 +510,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
                 textTransform: 'none',
               }}
             >
-              Clear Filter
+              Clear Search
             </Button>
           ) : (
             <Button
@@ -555,341 +540,125 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
             gap: 2.5,
           }}
         >
-          {filteredEnvironments.map((env) => {
-            const isRedeploying = redeployingId === env.id
-            const typeStyle = getTypeChipColor(env.type)
-
-            return (
-              <Box
-                key={env.id}
-                sx={{
-                  p: 2.5,
-                  borderRadius: '16px',
-                  bgcolor: m3Tokens.surfaceContainer,
-                  border: `1px solid ${m3Tokens.outlineVariant}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                  transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  '&:hover': {
-                    borderColor: m3Tokens.primary,
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.5)',
-                    bgcolor: m3Tokens.surfaceContainerHigh,
-                  },
-                }}
-              >
-                {/* Header: Environment name, type chip, and status pill */}
+          {filteredEnvironments.map((env) => (
+            <Box
+              key={env.id}
+              sx={{
+                p: 2.5,
+                borderRadius: '16px',
+                bgcolor: m3Tokens.surfaceContainer,
+                border: `1px solid ${m3Tokens.outlineVariant}`,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 2,
+                transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  borderColor: m3Tokens.primary,
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.5)',
+                  bgcolor: m3Tokens.surfaceContainerHigh,
+                },
+              }}
+            >
+              {/* Card Header: Icon & Name */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1.5,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                    <Box
-                      sx={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: '10px',
-                        bgcolor: typeStyle.bg,
-                        border: `1px solid ${typeStyle.border}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: typeStyle.color,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <RocketIcon sx={{ fontSize: 20 }} />
-                    </Box>
-
-                    <Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography
-                          sx={{
-                            fontSize: 16,
-                            fontWeight: 600,
-                            color: m3Tokens.onSurface,
-                            letterSpacing: '-0.01em',
-                            textTransform: 'capitalize',
-                          }}
-                        >
-                          {env.name}
-                        </Typography>
-
-                        <Chip
-                          label={env.type}
-                          size="small"
-                          sx={{
-                            height: 20,
-                            fontSize: 10,
-                            fontWeight: 600,
-                            fontFamily: m3Tokens.fontCode,
-                            textTransform: 'uppercase',
-                            bgcolor: typeStyle.bg,
-                            color: typeStyle.color,
-                            border: `1px solid ${typeStyle.border}`,
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  {/* Status Indicator Pill */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.75,
-                      px: 1.2,
-                      py: 0.4,
-                      borderRadius: '12px',
-                      bgcolor:
-                        env.status === 'healthy'
-                          ? 'rgba(74, 222, 128, 0.1)'
-                          : env.status === 'deploying'
-                            ? 'rgba(168, 199, 250, 0.15)'
-                            : 'rgba(202, 196, 208, 0.08)',
-                      border: `1px solid ${env.status === 'healthy'
-                        ? 'rgba(74, 222, 128, 0.3)'
-                        : env.status === 'deploying'
-                          ? 'rgba(168, 199, 250, 0.3)'
-                          : m3Tokens.outlineVariant
-                        }`,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: '50%',
-                        bgcolor:
-                          env.status === 'healthy'
-                            ? '#4ade80'
-                            : env.status === 'deploying'
-                              ? m3Tokens.secondary
-                              : m3Tokens.outline,
-                        boxShadow:
-                          env.status === 'healthy'
-                            ? '0 0 8px #4ade80'
-                            : env.status === 'deploying'
-                              ? `0 0 8px ${m3Tokens.secondary}`
-                              : 'none',
-                        animation:
-                          env.status === 'deploying' ? 'pulse 1.2s infinite' : 'none',
-                        '@keyframes pulse': {
-                          '0%': { opacity: 0.4 },
-                          '50%': { opacity: 1 },
-                          '100%': { opacity: 0.4 },
-                        },
-                      }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: 11,
-                        fontFamily: m3Tokens.fontCode,
-                        fontWeight: 600,
-                        color:
-                          env.status === 'healthy'
-                            ? '#4ade80'
-                            : env.status === 'deploying'
-                              ? m3Tokens.secondary
-                              : m3Tokens.outline,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {env.status}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* Domain & URL preview bar */}
-                <Box
-                  sx={{
-                    bgcolor: m3Tokens.surfaceContainerLow,
+                    width: 38,
+                    height: 38,
+                    borderRadius: '10px',
                     border: `1px solid ${m3Tokens.outlineVariant}`,
-                    borderRadius: '8px',
-                    p: 1.25,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    bgcolor: m3Tokens.surfaceContainerLow,
                   }}
                 >
-                  <Box
+                  <LayersIcon sx={{ fontSize: 20, color: m3Tokens.primary }} />
+                </Box>
+
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
                     sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      minWidth: 0,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      color: m3Tokens.onSurface,
+                      letterSpacing: '-0.01em',
+                      textTransform: 'capitalize',
                       overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        fontFamily: m3Tokens.fontCode,
-                        color: m3Tokens.onSurface,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {env.description}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* Deployment Metadata: Branch, Commit, Last Deployed */}
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: 1.5,
-                    fontSize: 12,
-                  }}
-                >
-                  {/* Branch info */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <BranchIcon sx={{ fontSize: 15, color: m3Tokens.outline }} />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: 11, color: m3Tokens.outline }}>Branch</Typography>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          fontFamily: m3Tokens.fontCode,
-                          color: m3Tokens.onSurface,
-                          fontWeight: 500,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {env.branch}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Last commit info */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <TerminalIcon sx={{ fontSize: 15, color: m3Tokens.outline }} />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: 11, color: m3Tokens.outline }}>Commit</Typography>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          fontFamily: m3Tokens.fontCode,
-                          color: m3Tokens.onSurface,
-                          fontWeight: 500,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {env.lastCommitHash}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Divider sx={{ borderColor: 'rgba(202, 196, 208, 0.08)' }} />
-
-                {/* Bottom Footer Actions: Variables badge & redeploy */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                  }}
-                >
-                  {/* Variables Button */}
-                  <Button
-                    size="small"
-                    startIcon={<KeyIcon sx={{ fontSize: 15 }} />}
-                    onClick={() => setActiveEnvForVars(env)}
+                    {env.name}
+                  </Typography>
+                  <Typography
                     sx={{
                       fontSize: 12,
+                      color: m3Tokens.onSurfaceVariant,
                       fontFamily: m3Tokens.fontCode,
-                      textTransform: 'none',
-                      color: m3Tokens.primary,
-                      bgcolor: 'rgba(208, 188, 255, 0.06)',
-                      border: '1px solid rgba(208, 188, 255, 0.2)',
+                    }}
+                  >
+                    Updated {env.updatedAt}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Card Footer: Variables button & Delete action */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                  pt: 1,
+                  borderTop: `1px solid ${m3Tokens.outlineVariant}`,
+                }}
+              >
+                <Button
+                  size="small"
+                  startIcon={<KeyIcon sx={{ fontSize: 15 }} />}
+                  onClick={() => setActiveEnvForVars(env)}
+                  sx={{
+                    fontSize: 12,
+                    fontFamily: m3Tokens.fontCode,
+                    textTransform: 'none',
+                    color: m3Tokens.primary,
+                    bgcolor: 'rgba(208, 188, 255, 0.06)',
+                    border: '1px solid rgba(208, 188, 255, 0.2)',
+                    borderRadius: '6px',
+                    px: 1.25,
+                    py: 0.5,
+                    '&:hover': {
+                      bgcolor: 'rgba(208, 188, 255, 0.12)',
+                      borderColor: m3Tokens.primary,
+                    },
+                  }}
+                >
+                  {env.variables.length} Variables
+                </Button>
+
+                <Tooltip title="Delete environment" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteEnvironment(env.id)}
+                    sx={{
+                      color: m3Tokens.onSurfaceVariant,
                       borderRadius: '6px',
-                      px: 1.25,
-                      py: 0.5,
                       '&:hover': {
-                        bgcolor: 'rgba(208, 188, 255, 0.12)',
-                        borderColor: m3Tokens.primary,
+                        color: m3Tokens.error,
+                        bgcolor: 'rgba(255, 180, 171, 0.08)',
                       },
                     }}
                   >
-                    {env.variables.length} Variables
-                  </Button>
-
-                  {/* Redeploy and Delete Action Controls */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Tooltip title="Delete environment" arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteEnvironment(env.id)}
-                        sx={{
-                          color: m3Tokens.onSurfaceVariant,
-                          borderRadius: '6px',
-                          '&:hover': { color: m3Tokens.error, bgcolor: 'rgba(255, 180, 171, 0.08)' },
-                        }}
-                      >
-                        <DeleteIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
-
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      disabled={isRedeploying}
-                      onClick={() => handleRedeploy(env.id)}
-                      startIcon={
-                        isRedeploying ? (
-                          <RefreshIcon
-                            sx={{
-                              fontSize: 14,
-                              animation: 'spin 1s linear infinite',
-                              '@keyframes spin': {
-                                '100%': { transform: 'rotate(360deg)' },
-                              },
-                            }}
-                          />
-                        ) : (
-                          <RocketIcon sx={{ fontSize: 14 }} />
-                        )
-                      }
-                      sx={{
-                        fontSize: 12,
-                        textTransform: 'none',
-                        borderRadius: '6px',
-                        borderColor: m3Tokens.outlineVariant,
-                        color: m3Tokens.onSurface,
-                        px: 1.5,
-                        py: 0.5,
-                        '&:hover': {
-                          borderColor: m3Tokens.primary,
-                          color: m3Tokens.primary,
-                          bgcolor: 'rgba(208, 188, 255, 0.04)',
-                        },
-                      }}
-                    >
-                      {isRedeploying ? 'Deploying...' : 'Redeploy'}
-                    </Button>
-                  </Box>
-                </Box>
+                    <DeleteIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
               </Box>
-            )
-          })}
+            </Box>
+          ))}
         </Box>
       )}
 
@@ -1154,173 +923,13 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
       </Dialog>
 
       {/* Create Environment Dialog */}
-      <Dialog
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              bgcolor: m3Tokens.surfaceContainer,
-              border: `1px solid ${m3Tokens.outlineVariant}`,
-              borderRadius: '16px',
-              color: m3Tokens.onSurface,
-            },
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            pb: 1,
-            borderBottom: `1px solid ${m3Tokens.outlineVariant}`,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <RocketIcon sx={{ color: m3Tokens.primary, fontSize: 22 }} />
-            <Typography sx={{ fontSize: 18, fontWeight: 600, color: m3Tokens.onSurface }}>
-              Create Environment
-            </Typography>
-          </Box>
-          <IconButton
-            size="small"
-            onClick={() => setIsCreateOpen(false)}
-            sx={{ color: m3Tokens.onSurfaceVariant }}
-          >
-            <CloseIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 3 }}>
-          <TextField
-            label="Environment Name"
-            placeholder="e.g. qa, preview-pr-12, testing"
-            value={newEnvName}
-            onChange={(e) => setNewEnvName(e.target.value)}
-            required
-            fullWidth
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <RocketIcon sx={{ color: m3Tokens.outline, fontSize: 18 }} />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                bgcolor: m3Tokens.surfaceContainerLow,
-                borderRadius: '8px',
-                '& fieldset': { borderColor: m3Tokens.outlineVariant },
-                '&:hover fieldset': { borderColor: m3Tokens.outline },
-                '&.Mui-focused fieldset': { borderColor: m3Tokens.primary },
-              },
-              '& .MuiInputLabel-root': { color: m3Tokens.onSurfaceVariant },
-              '& .MuiInputLabel-root.Mui-focused': { color: m3Tokens.primary },
-            }}
-          />
-
-          {/* Environment Type Select Buttons */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography sx={{ fontSize: 12, color: m3Tokens.onSurfaceVariant }}>
-              Environment Type
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {(['production', 'staging', 'development', 'preview'] as EnvironmentType[]).map((type) => {
-                const selected = newEnvType === type
-                const style = getTypeChipColor(type)
-                return (
-                  <Button
-                    key={type}
-                    size="small"
-                    onClick={() => setNewEnvType(type)}
-                    sx={{
-                      textTransform: 'capitalize',
-                      borderRadius: '8px',
-                      fontSize: 12,
-                      px: 2,
-                      py: 0.75,
-                      bgcolor: selected ? style.bg : m3Tokens.surfaceContainerLow,
-                      color: selected ? style.color : m3Tokens.onSurfaceVariant,
-                      border: `1px solid ${selected ? style.border : m3Tokens.outlineVariant}`,
-                      fontWeight: selected ? 600 : 400,
-                      '&:hover': {
-                        borderColor: style.border,
-                        bgcolor: style.bg,
-                      },
-                    }}
-                  >
-                    {type}
-                  </Button>
-                )
-              })}
-            </Box>
-          </Box>
-
-          <TextField
-            label="Git Branch"
-            placeholder="main, dev, or feature-branch"
-            value={newEnvBranch}
-            onChange={(e) => setNewEnvBranch(e.target.value)}
-            fullWidth
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <BranchIcon sx={{ color: m3Tokens.outline, fontSize: 18 }} />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                bgcolor: m3Tokens.surfaceContainerLow,
-                borderRadius: '8px',
-                '& fieldset': { borderColor: m3Tokens.outlineVariant },
-                '&:hover fieldset': { borderColor: m3Tokens.outline },
-                '&.Mui-focused fieldset': { borderColor: m3Tokens.primary },
-              },
-              '& .MuiInputLabel-root': { color: m3Tokens.onSurfaceVariant },
-              '& .MuiInputLabel-root.Mui-focused': { color: m3Tokens.primary },
-            }}
-          />
-        </DialogContent>
-
-        <DialogActions sx={{ p: 2.5, borderTop: `1px solid ${m3Tokens.outlineVariant}`, gap: 1 }}>
-          <Button
-            onClick={() => setIsCreateOpen(false)}
-            sx={{
-              color: m3Tokens.onSurfaceVariant,
-              textTransform: 'none',
-              fontSize: 13,
-            }}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            variant="contained"
-            disabled={!newEnvName.trim()}
-            onClick={handleCreateEnvironment}
-            sx={{
-              bgcolor: m3Tokens.primary,
-              color: m3Tokens.onPrimary,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: 13,
-              borderRadius: '8px',
-              px: 2.5,
-              '&:hover': { bgcolor: m3Tokens.primary, opacity: 0.95 },
-            }}
-          >
-            Create Environment
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CreateEnvironmentDialog
+        isCreateOpen={isCreateOpen}
+        setIsCreateOpen={setIsCreateOpen}
+        newEnvName={newEnvName}
+        setNewEnvName={setNewEnvName}
+        handleCreateEnvironment={handleCreateEnvironment}
+      />
 
       <Footer />
     </Box>
