@@ -31,7 +31,8 @@ import { m3Tokens } from '../../../theme/m3Tokens'
 import { Footer } from '../../footer/footer'
 import { getAuthHeaders } from '../../../api/client'
 import type { ProjectItem } from './ProjectsView'
-import { CreateEnvironmentDialog } from './CreateEnviroment'
+import { CreateEnvironmentPage } from './CreateEnviroment'
+import type { NewEnvironmentData } from './CreateEnviroment'
 
 export interface EnvVariable {
   key: string
@@ -119,9 +120,8 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   const [newVarValue, setNewVarValue] = useState('')
   const [newVarIsSecret, setNewVarIsSecret] = useState(false)
 
-  // Create environment dialog state
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [newEnvName, setNewEnvName] = useState('')
+  // Create environment page state
+  const [isCreating, setIsCreating] = useState(false)
 
   // Filter environments by search query
   const filteredEnvironments = useMemo(() => {
@@ -179,25 +179,17 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   }
 
   // Create new environment
-  const handleCreateEnvironment = () => {
-    if (!newEnvName.trim()) return
-
-    const safeEnvName = newEnvName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
-
+  const handleCreateEnvironment = (data: NewEnvironmentData) => {
     const newEnv: ProjectEnvironment = {
       id: `env-${Date.now()}`,
-      name: safeEnvName,
+      name: data.name,
       updatedAt: 'Just now',
-      variables: [
-        { key: 'NODE_ENV', value: safeEnvName, isSecret: false },
-        { key: 'PORT', value: '8080', isSecret: false },
-      ],
-      description: 'Project environment',
+      variables: data.variables,
+      description: data.description,
     }
 
     setEnvironments((prev) => [...prev, newEnv])
-    setIsCreateOpen(false)
-    setNewEnvName('')
+    setIsCreating(false)
   }
 
   // Delete environment
@@ -208,6 +200,17 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
         setActiveEnvForVars(null)
       }
     }
+  }
+
+  if (isCreating) {
+    return (
+      <CreateEnvironmentPage
+        projectName={currentProjectName}
+        existingNames={environments.map((e) => e.name)}
+        onBack={() => setIsCreating(false)}
+        onCreate={handleCreateEnvironment}
+      />
+    )
   }
 
   return (
@@ -388,7 +391,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
           <Button
             variant="contained"
             startIcon={<AddIcon sx={{ fontSize: 18 }} />}
-            onClick={() => setIsCreateOpen(true)}
+            onClick={() => setIsCreating(true)}
             sx={{
               height: 38,
               px: 2,
@@ -517,7 +520,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
               variant="contained"
               size="small"
               startIcon={<AddIcon />}
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => setIsCreating(true)}
               sx={{
                 mt: 1,
                 bgcolor: m3Tokens.primary,
@@ -921,15 +924,6 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Create Environment Dialog */}
-      <CreateEnvironmentDialog
-        isCreateOpen={isCreateOpen}
-        setIsCreateOpen={setIsCreateOpen}
-        newEnvName={newEnvName}
-        setNewEnvName={setNewEnvName}
-        handleCreateEnvironment={handleCreateEnvironment}
-      />
 
       <Footer />
     </Box>
