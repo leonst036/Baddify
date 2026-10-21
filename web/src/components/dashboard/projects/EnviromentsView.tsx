@@ -179,17 +179,46 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   }
 
   // Create new environment
-  const handleCreateEnvironment = (data: NewEnvironmentData) => {
-    const newEnv: ProjectEnvironment = {
-      id: `env-${Date.now()}`,
-      name: data.name,
-      updatedAt: 'Just now',
-      variables: data.variables,
-      description: data.description,
-    }
+  const handleCreateEnvironment = async (data: NewEnvironmentData) => {
+    if (!projectId) return
 
-    setEnvironments((prev) => [...prev, newEnv])
-    setIsCreating(false)
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/environments`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          variables: data.variables,
+        }),
+      })
+
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(errText || `Failed to create environment (${res.status})`)
+      }
+
+      const created = await res.json()
+      const newEnv: ProjectEnvironment = {
+        id: created.id || created.uuid || `env-${Date.now()}`,
+        uuid: created.uuid,
+        name: created.name || data.name,
+        updatedAt: 'Just now',
+        variables: created.variables || data.variables,
+        description: created.description || data.description,
+      }
+
+      setEnvironments((prev) => [...prev, newEnv])
+      setIsCreating(false)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create environment'
+      setError(msg)
+      setIsCreating(false)
+    }
   }
 
   // Delete environment

@@ -54,14 +54,15 @@ export function NewProjects({ onBack }: NewProjectsProps) {
     }
 
     const createProject = async () => {
-        if (!projectName.trim()) {
+        const trimmedName = projectName.trim()
+        if (!trimmedName) {
             alert('Please enter a project name')
             return
         }
 
         try {
             const params = new URLSearchParams({
-                project_name: projectName.trim(),
+                project_name: trimmedName,
                 project_description: projectDescription.trim(),
             })
             const res = await fetch(`/api/projects/new?${params.toString()}`, {
@@ -70,13 +71,49 @@ export function NewProjects({ onBack }: NewProjectsProps) {
                 credentials: 'include',
             })
             const text = await res.text()
-            if (res.ok) {
-                alert(text || 'Project created successfully')
-                if (onBack) {
-                    onBack()
-                }
-            } else {
+            if (!res.ok) {
                 alert(`Error: ${text || res.statusText}`)
+                return
+            }
+
+            // Create initial environment for the project
+            const validVars = envVars
+                .filter((v) => v.key.trim())
+                .map((v) => ({
+                    key: v.key.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_'),
+                    value: v.value.trim(),
+                    isSecret: false,
+                }))
+
+            try {
+                const envRes = await fetch(
+                    `/api/projects/${encodeURIComponent(trimmedName)}/environments`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            ...getAuthHeaders(),
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            name: environment.trim() || 'production',
+                            description: `${trimmedName} ${environment || 'production'} environment`,
+                            variables: validVars,
+                        }),
+                    }
+                )
+
+                if (!envRes.ok) {
+                    const envErr = await envRes.text()
+                    console.error('Failed to create default environment:', envErr)
+                }
+            } catch (envErr) {
+                console.error('Network error creating environment:', envErr)
+            }
+
+            alert(text || 'Project created successfully')
+            if (onBack) {
+                onBack()
             }
         } catch (err: unknown) {
             const errorMsg = err instanceof Error ? err.message : 'Network error'
