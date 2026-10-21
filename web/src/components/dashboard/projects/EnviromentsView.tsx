@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon,
@@ -33,6 +34,7 @@ import { getAuthHeaders } from '../../../api/client'
 import type { ProjectItem } from './ProjectsView'
 import { CreateEnvironmentPage } from './CreateEnviroment'
 import type { NewEnvironmentData } from './CreateEnviroment'
+import { ContainerView } from './ContainerView'
 
 export interface EnvVariable {
   key: string
@@ -122,6 +124,8 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
 
   // Create environment page state
   const [isCreating, setIsCreating] = useState(false)
+  // Selected environment for ContainerView
+  const [selectedEnvironment, setSelectedEnvironment] = useState<ProjectEnvironment | null>(null)
 
   // Filter environments by search query
   const filteredEnvironments = useMemo(() => {
@@ -238,6 +242,16 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
         existingNames={environments.map((e) => e.name)}
         onBack={() => setIsCreating(false)}
         onCreate={handleCreateEnvironment}
+      />
+    )
+  }
+
+  if (selectedEnvironment) {
+    return (
+      <ContainerView
+        project={project}
+        environment={selectedEnvironment}
+        onBack={() => setSelectedEnvironment(null)}
       />
     )
   }
@@ -575,6 +589,7 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
           {filteredEnvironments.map((env) => (
             <Box
               key={env.id}
+              onClick={() => setSelectedEnvironment(env)}
               sx={{
                 p: 2.5,
                 borderRadius: '16px',
@@ -584,58 +599,83 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 gap: 2,
+                cursor: 'pointer',
                 transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
                   borderColor: m3Tokens.primary,
                   transform: 'translateY(-2px)',
                   boxShadow: '0 12px 30px rgba(0, 0, 0, 0.5)',
                   bgcolor: m3Tokens.surfaceContainerHigh,
+                  '& .env-card-arrow': {
+                    transform: 'translateX(4px)',
+                    color: m3Tokens.primary,
+                  },
+                  '& .env-card-icon': {
+                    bgcolor: 'rgba(208, 188, 255, 0.16)',
+                    borderColor: 'rgba(208, 188, 255, 0.35)',
+                  },
                 },
               }}
             >
-              {/* Card Header: Icon & Name */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: '10px',
-                    border: `1px solid ${m3Tokens.outlineVariant}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    bgcolor: m3Tokens.surfaceContainerLow,
-                  }}
-                >
-                  <LayersIcon sx={{ fontSize: 20, color: m3Tokens.primary }} />
+              {/* Card Header: Icon, Name & Forward Arrow */}
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                  <Box
+                    className="env-card-icon"
+                    sx={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: '10px',
+                      border: `1px solid ${m3Tokens.outlineVariant}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      bgcolor: m3Tokens.surfaceContainerLow,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <LayersIcon sx={{ fontSize: 20, color: m3Tokens.primary }} />
+                  </Box>
+
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: m3Tokens.onSurface,
+                        letterSpacing: '-0.01em',
+                        textTransform: 'capitalize',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {env.name}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: 12,
+                        color: m3Tokens.onSurfaceVariant,
+                        fontFamily: m3Tokens.fontCode,
+                      }}
+                    >
+                      Updated {env.updatedAt}
+                    </Typography>
+                  </Box>
                 </Box>
 
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: m3Tokens.onSurface,
-                      letterSpacing: '-0.01em',
-                      textTransform: 'capitalize',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {env.name}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: 12,
-                      color: m3Tokens.onSurfaceVariant,
-                      fontFamily: m3Tokens.fontCode,
-                    }}
-                  >
-                    Updated {env.updatedAt}
-                  </Typography>
-                </Box>
+                <ArrowForwardIcon
+                  className="env-card-arrow"
+                  sx={{
+                    fontSize: 18,
+                    color: m3Tokens.onSurfaceVariant,
+                    opacity: 0.7,
+                    transition: 'all 0.2s ease',
+                    mt: 0.5,
+                    flexShrink: 0,
+                  }}
+                />
               </Box>
 
               {/* Card Footer: Variables button & Delete action */}
@@ -652,7 +692,10 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
                 <Button
                   size="small"
                   startIcon={<KeyIcon sx={{ fontSize: 15 }} />}
-                  onClick={() => setActiveEnvForVars(env)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveEnvForVars(env)
+                  }}
                   sx={{
                     fontSize: 12,
                     fontFamily: m3Tokens.fontCode,
@@ -675,7 +718,10 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
                 <Tooltip title="Delete environment" arrow>
                   <IconButton
                     size="small"
-                    onClick={() => handleDeleteEnvironment(env.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteEnvironment(env.id)
+                    }}
                     sx={{
                       color: m3Tokens.onSurfaceVariant,
                       borderRadius: '6px',

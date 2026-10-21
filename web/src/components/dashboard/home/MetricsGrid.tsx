@@ -72,7 +72,7 @@ export function MetricsGrid({ telemetry: externalTelemetry }: MetricsGridProps =
   const ramValue = ramData ? formatBytes(ramData.used) : hasRamError ? 'N/A' : '-- GB'
   const ramProgress = ramData ? Math.min(100, Math.max(0, ramData.used_percent)) : 0
 
-  const diskStatus = hasDiskError && !diskData ? 'ERROR' : diskData ? 'ONLINE' : 'LOADING...'
+
   const diskStatusColor = hasDiskError && !diskData ? m3Tokens.error : diskData ? m3Tokens.primary : undefined
 
   const calcRateProgress = (rate?: number) => {
@@ -122,7 +122,7 @@ export function MetricsGrid({ telemetry: externalTelemetry }: MetricsGridProps =
       />
       <DiskMetricCard
         title="DISK I/O"
-        status={diskStatus}
+        status={""}
         statusColor={diskStatusColor}
         readRate={readRate}
         writeRate={writeRate}
