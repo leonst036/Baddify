@@ -1,4 +1,3 @@
-import React from 'react'
 import {
   Box,
   Button,
@@ -9,10 +8,10 @@ import {
   ArrowBack as ArrowBackIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
-  Search as SearchIcon,
   FolderOutlined as FolderIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
+import { SearchBar } from '@/shared'
 
 export interface EnvironmentHeaderProps {
   projectName: string
@@ -139,43 +138,12 @@ export function EnvironmentHeader({
       {/* Right Action Header Buttons */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         {/* Search Bar */}
-        <Box
-          sx={{
-            height: 38,
-            px: 1.5,
-            bgcolor: m3Tokens.surfaceContainer,
-            border: `1px solid ${m3Tokens.outlineVariant}`,
-            borderRadius: '6px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            transition: 'border-color 0.2s',
-            '&:focus-within': {
-              borderColor: m3Tokens.primary,
-            },
-          }}
-        >
-          <SearchIcon sx={{ fontSize: 16, color: m3Tokens.onSurfaceVariant, opacity: 0.8 }} />
-          <Box
-            component="input"
-            value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
-            placeholder="Filter environments..."
-            sx={{
-              border: 'none',
-              outline: 'none',
-              bgcolor: 'transparent',
-              color: m3Tokens.onSurface,
-              fontSize: 13,
-              fontFamily: m3Tokens.fontSans,
-              width: 170,
-              '&::placeholder': {
-                color: m3Tokens.onSurfaceVariant,
-                opacity: 0.6,
-              },
-            }}
-          />
-        </Box>
+        <SearchBar
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder="Filter environments..."
+          width={170}
+        />
 
         {/* Refresh Button */}
         <IconButton

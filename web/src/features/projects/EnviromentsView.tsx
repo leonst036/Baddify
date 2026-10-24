@@ -15,6 +15,7 @@ import { EnvironmentCard } from './components/EnvironmentCard'
 import { EnvironmentVariablesDialog } from './components/EnvironmentVariablesDialog'
 import { EnvironmentEmptyState } from './components/EnvironmentEmptyState'
 import type { EnvVariable, ProjectEnvironment, ProjectItem } from './types'
+import { ConfirmDialog } from '@/shared'
 
 export type { EnvVariable, ProjectEnvironment }
 
@@ -40,6 +41,8 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   const [isCreating, setIsCreating] = useState(false)
   // Selected environment for ContainerView
   const [selectedEnvironment, setSelectedEnvironment] = useState<ProjectEnvironment | null>(null)
+  // Delete confirmation dialog state
+  const [envIdToDelete, setEnvIdToDelete] = useState<string | null>(null)
 
   const fetchEnvironments = useCallback(async (isManualRefresh = false) => {
     if (!projectId) {
@@ -197,12 +200,16 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
 
   // Delete environment
   const handleDeleteEnvironment = (envId: string) => {
-    if (confirm('Are you sure you want to delete this environment?')) {
-      setEnvironments((prev) => prev.filter((e) => e.id !== envId))
-      if (activeEnvForVars?.id === envId) {
-        setActiveEnvForVars(null)
-      }
+    setEnvIdToDelete(envId)
+  }
+
+  const confirmDeleteEnvironment = () => {
+    if (!envIdToDelete) return
+    setEnvironments((prev) => prev.filter((e) => e.id !== envIdToDelete))
+    if (activeEnvForVars?.id === envIdToDelete) {
+      setActiveEnvForVars(null)
     }
+    setEnvIdToDelete(null)
   }
 
   if (isCreating) {
@@ -337,6 +344,17 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
         onClose={() => setActiveEnvForVars(null)}
         onUpdateVariables={handleUpdateVariables}
         onCopyFeedback={handleCopyFeedback}
+      />
+
+      {/* Delete Environment Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(envIdToDelete)}
+        title="Delete Environment"
+        message="Are you sure you want to delete this environment? This action cannot be undone."
+        confirmText="Delete"
+        isDestructive
+        onConfirm={confirmDeleteEnvironment}
+        onCancel={() => setEnvIdToDelete(null)}
       />
 
       <Footer />

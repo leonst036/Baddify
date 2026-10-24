@@ -1,6 +1,7 @@
 import { Box, Button, Typography, IconButton } from '@mui/material'
-import { Add as AddIcon, Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material'
+import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
+import { SearchBar } from '@/shared'
 
 interface ProjectsHeaderProps {
   searchQuery: string
@@ -78,43 +79,12 @@ export function ProjectsHeader({
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         {/* Search input */}
-        <Box
-          sx={{
-            height: 38,
-            px: 1.75,
-            bgcolor: m3Tokens.surfaceContainer,
-            border: `1px solid ${m3Tokens.outlineVariant}`,
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.25,
-            transition: 'border-color 0.2s',
-            '&:focus-within': {
-              borderColor: m3Tokens.primary,
-            },
-          }}
-        >
-          <SearchIcon sx={{ fontSize: 16, color: m3Tokens.onSurfaceVariant, opacity: 0.8 }} />
-          <Box
-            component="input"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Filter projects..."
-            sx={{
-              border: 'none',
-              outline: 'none',
-              bgcolor: 'transparent',
-              color: m3Tokens.onSurface,
-              fontFamily: m3Tokens.fontSans,
-              fontSize: 13,
-              width: 140,
-              '&::placeholder': {
-                color: m3Tokens.onSurfaceVariant,
-                opacity: 0.6,
-              },
-            }}
-          />
-        </Box>
+        <SearchBar
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder="Filter projects..."
+          width={150}
+        />
 
         {onRefresh && (
           <IconButton
