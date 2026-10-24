@@ -46,13 +46,6 @@ export interface NewContainerProps {
   onSuccess?: () => void
 }
 
-const PRESET_IMAGES = [
-  'nginx:alpine',
-  'redis:alpine',
-  'postgres:16-alpine',
-  'node:20-alpine',
-  'python:3.12-alpine',
-]
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
@@ -281,7 +274,7 @@ export function NewContainer({
             </Typography>
             <TextField
               size="small"
-              placeholder="e.g. web-gateway or redis-cache"
+              placeholder="e.g. My cool Website"
               value={name}
               onChange={(e) => setName(e.target.value)}
               sx={inputSx}
@@ -299,33 +292,6 @@ export function NewContainer({
               onChange={(e) => setImage(e.target.value)}
               sx={inputSx}
             />
-
-            {/* Image Presets */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
-              <Typography sx={{ fontSize: 11, color: m3Tokens.onSurfaceVariant, fontFamily: m3Tokens.fontCode }}>
-                Presets:
-              </Typography>
-              {PRESET_IMAGES.map((preset) => (
-                <Chip
-                  key={preset}
-                  label={preset}
-                  size="small"
-                  onClick={() => setImage(preset)}
-                  clickable
-                  sx={{
-                    height: 24,
-                    fontSize: 11,
-                    fontFamily: m3Tokens.fontCode,
-                    bgcolor: image === preset ? 'rgba(208, 188, 255, 0.16)' : m3Tokens.surfaceContainerLow,
-                    color: image === preset ? m3Tokens.primary : m3Tokens.onSurfaceVariant,
-                    border: `1px solid ${image === preset ? m3Tokens.primary : m3Tokens.outlineVariant}`,
-                    '&:hover': {
-                      borderColor: m3Tokens.primary,
-                    },
-                  }}
-                />
-              ))}
-            </Box>
           </Box>
         </Box>
 
