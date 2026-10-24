@@ -11,7 +11,7 @@ interface TopBarProps {
 const NAV_TITLES: Record<number, string> = {
   0: 'Overview',
   1: 'Projects',
-  2: 'Storage',
+  2: '???',
   3: 'Servers',
   4: 'Settings',
 }

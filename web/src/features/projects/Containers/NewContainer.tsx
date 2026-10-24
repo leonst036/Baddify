@@ -20,7 +20,7 @@ import {
 } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
 import { Footer } from '@/components/common'
-import type { ProjectItem, ProjectEnvironment } from './types'
+import type { ProjectItem, ProjectEnvironment } from '../types'
 
 export interface ContainerPortMapping {
   hostPort: string
