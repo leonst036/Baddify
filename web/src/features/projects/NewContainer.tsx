@@ -112,11 +112,16 @@ export function NewContainer({
       const data = await res.json()
 
       if (!data.valid) {
-        alert(data.reason)
+        setError(data.reason)
+        return
+      }
+
+      if (data.suggestedRepo) {
+        setImage(data.suggestedRepo)
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to validate image'
-      alert(msg)
+      setError(msg)
     }
   }
 
@@ -308,8 +313,15 @@ export function NewContainer({
               size="small"
               placeholder="e.g. nginx:alpine or redis:7-alpine"
               value={image}
-              onChange={(e) => setImage(e.target.value)}
-              onBlur={(e) => handleValidateImage(e.target.value)}
+              onChange={(e) => {
+                if (error) setError(null)
+                setImage(e.target.value)
+              }}
+              onBlur={(e) => {
+                if (e.target.value) {
+                  handleValidateImage(e.target.value)
+                }
+              }}
               sx={inputSx}
             />
           </Box>
