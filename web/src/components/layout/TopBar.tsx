@@ -63,9 +63,9 @@ export function TopBar({ activeNav = 0, subTitle, onTitleClick }: TopBarProps) {
               textTransform: 'none',
               '&:hover': onTitleClick
                 ? {
-                    bgcolor: m3Tokens.surfaceContainerHigh,
-                    color: m3Tokens.onSurface,
-                  }
+                  bgcolor: m3Tokens.surfaceContainerHigh,
+                  color: m3Tokens.onSurface,
+                }
                 : undefined,
             }}
           >
@@ -108,35 +108,6 @@ export function TopBar({ activeNav = 0, subTitle, onTitleClick }: TopBarProps) {
 
       {/* Right: Utility Frames & Status Node */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {/* Status Indicator Pill */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            px: 1.75,
-            py: 0.75,
-            borderRadius: 9999,
-            bgcolor: m3Tokens.surfaceContainer,
-            border: `1px solid ${m3Tokens.outlineVariant}`,
-            color: m3Tokens.primary,
-            fontFamily: m3Tokens.fontCode,
-            fontSize: 11,
-            fontWeight: 500,
-            letterSpacing: '0.04em',
-          }}
-        >
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: m3Tokens.primary,
-              animation: 'pulse 2s infinite',
-            }}
-          />
-          <span>Not Connected - Development</span>
-        </Box>
 
         <Box
           sx={{
