@@ -1,4 +1,4 @@
-import { ControlPlaneDashboard } from './components/dashboard/ControlPlaneDashboard'
+import { ControlPlaneDashboard } from '@/features/overview'
 
 function App() {
   return <ControlPlaneDashboard />

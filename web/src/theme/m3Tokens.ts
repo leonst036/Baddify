@@ -1,4 +1,3 @@
-// Material 3 design tokens derived from the design specification
 export const m3Tokens = {
   background: '#141218',
   surface: '#141218',

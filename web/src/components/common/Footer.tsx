@@ -1,0 +1,16 @@
+import React from 'react';
+import './Footer.css';
+
+export const Footer: React.FC = () => {
+
+
+    return (
+        <footer className="footer">
+            <p>
+                Made with a lot of ❤️ by <a href="https://github.com/leonst036">Leon</a>
+            </p>
+        </footer>
+    );
+};
+
+export default Footer;

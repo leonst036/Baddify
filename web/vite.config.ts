@@ -11,6 +11,11 @@ function isAllowedRoute(pathname: string): boolean {
 }
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': resolve(import.meta.dirname, 'src'),
+    },
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:4000',
