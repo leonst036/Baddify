@@ -16,15 +16,21 @@ import { getAuthHeaders } from '@/api/client'
 import { ProjectsHeader } from './components/ProjectsHeader'
 import { ProjectCard } from './components/ProjectCard'
 import { ProjectEmptyState } from './components/ProjectEmptyState'
-import type { ProjectItem } from './types'
+import type { ProjectItem, ProjectEnvironment } from './types'
 
 export type { ProjectItem }
 
-interface ProjectsViewProps {
+export interface ProjectsViewProps {
   isCreating?: boolean
   onToggleCreating?: (creating: boolean) => void
   selectedProject?: ProjectItem | null
   onSelectProject?: (project: ProjectItem | null) => void
+  selectedEnvironment?: ProjectEnvironment | null
+  onSelectEnvironment?: (env: ProjectEnvironment | null) => void
+  isCreatingEnvironment?: boolean
+  onToggleCreatingEnvironment?: (creating: boolean) => void
+  isCreatingContainer?: boolean
+  onToggleCreatingContainer?: (creating: boolean) => void
 }
 
 export function ProjectsView({
@@ -32,6 +38,12 @@ export function ProjectsView({
   onToggleCreating,
   selectedProject: externalSelectedProject,
   onSelectProject,
+  selectedEnvironment,
+  onSelectEnvironment,
+  isCreatingEnvironment,
+  onToggleCreatingEnvironment,
+  isCreatingContainer,
+  onToggleCreatingContainer,
 }: ProjectsViewProps = {}) {
   const [internalIsCreating, setInternalIsCreating] = useState(false)
   const [internalSelectedProject, setInternalSelectedProject] = useState<ProjectItem | null>(null)
@@ -139,6 +151,12 @@ export function ProjectsView({
       <EnviromentsView
         project={selectedProject}
         onBack={() => setSelectedProject(null)}
+        selectedEnvironment={selectedEnvironment}
+        onSelectEnvironment={onSelectEnvironment}
+        isCreating={isCreatingEnvironment}
+        onToggleCreating={onToggleCreatingEnvironment}
+        isCreatingContainer={isCreatingContainer}
+        onToggleCreatingContainer={onToggleCreatingContainer}
       />
     )
   }

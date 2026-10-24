@@ -20,6 +20,8 @@ export interface ContainerViewProps {
     environment?: ProjectEnvironment | null
     onBack?: () => void
     onNewContainer?: () => void
+    isCreating?: boolean
+    onToggleCreating?: (creating: boolean) => void
 }
 
 export function ContainerView({
@@ -27,11 +29,15 @@ export function ContainerView({
     environment,
     onBack,
     onNewContainer,
+    isCreating: externalIsCreating,
+    onToggleCreating,
 }: ContainerViewProps) {
     const projectName = project?.name || 'Project'
     const envName = environment?.name || 'Environment'
 
     const [isCreatingInternal, setIsCreatingInternal] = useState(false)
+    const isCreating = externalIsCreating !== undefined ? externalIsCreating : isCreatingInternal
+    const setIsCreating = onToggleCreating || setIsCreatingInternal
     const [containers, setContainers] = useState<ContainerItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
@@ -118,17 +124,17 @@ export function ContainerView({
         return list
     }, [containers, statusFilter, searchQuery])
 
-    if (isCreatingInternal) {
+    if (isCreating) {
         return (
             <NewContainer
                 project={project}
                 environment={environment}
                 onBack={() => {
-                    setIsCreatingInternal(false)
+                    setIsCreating(false)
                     void fetchContainers()
                 }}
                 onSuccess={() => {
-                    setIsCreatingInternal(false)
+                    setIsCreating(false)
                     void fetchContainers()
                 }}
             />
@@ -150,7 +156,7 @@ export function ContainerView({
                 isRefreshing={isRefreshing}
                 onRefresh={fetchContainers}
                 onBack={onBack}
-                onNewContainer={onNewContainer || (() => setIsCreatingInternal(true))}
+                onNewContainer={onNewContainer || (() => setIsCreating(true))}
             />
 
             {error && (

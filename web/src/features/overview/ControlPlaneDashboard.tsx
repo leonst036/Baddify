@@ -2,24 +2,34 @@ import { useState } from 'react'
 import { Box, Typography } from '@mui/material'
 import { m3Tokens } from '@/theme/m3Tokens'
 import { useTelemetry } from '@/hooks/useTelemetry'
+import { useNavigation } from '@/navigation'
 import { Sidebar, TopBar } from '@/components/layout'
 import { DashboardCard } from '@/components/common'
 import { HomeView } from './HomeView'
-import { ProjectsView, type ProjectItem } from '@/features/projects'
+import { ProjectsView } from '@/features/projects'
 
 export function ControlPlaneDashboard() {
-  const [activeNav, setActiveNav] = useState(0)
-  const [isCreatingProject, setIsCreatingProject] = useState(false)
-  const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null)
+  const { state: navState, navigate, goBack } = useNavigation()
+  const {
+    activeNav,
+    isCreatingProject,
+    selectedProject,
+    selectedEnvironment,
+    isCreatingEnvironment,
+    isCreatingContainer,
+  } = navState
   const [searchQuery, setSearchQuery] = useState('')
   const telemetry = useTelemetry()
 
   const handleSelectNav = (index: number) => {
-    setActiveNav(index)
-    if (index !== 1) {
-      setIsCreatingProject(false)
-      setSelectedProject(null)
-    }
+    navigate({
+      activeNav: index,
+      isCreatingProject: false,
+      selectedProject: null,
+      selectedEnvironment: null,
+      isCreatingEnvironment: false,
+      isCreatingContainer: false,
+    })
   }
 
   return (
@@ -63,17 +73,19 @@ export function ControlPlaneDashboard() {
               ? isCreatingProject
                 ? 'New Projects'
                 : selectedProject
-                  ? selectedProject.name
+                  ? isCreatingEnvironment
+                    ? `${selectedProject.name} > New Environment`
+                    : selectedEnvironment
+                      ? isCreatingContainer
+                        ? `${selectedProject.name} > ${selectedEnvironment.name} > New Container`
+                        : `${selectedProject.name} > ${selectedEnvironment.name}`
+                      : selectedProject.name
                   : undefined
               : undefined
           }
           onTitleClick={
-            activeNav === 1
-              ? isCreatingProject
-                ? () => setIsCreatingProject(false)
-                : selectedProject
-                  ? () => setSelectedProject(null)
-                  : undefined
+            activeNav === 1 && (isCreatingProject || selectedProject)
+              ? () => goBack()
               : undefined
           }
         />
@@ -101,13 +113,53 @@ export function ControlPlaneDashboard() {
             <ProjectsView
               isCreating={isCreatingProject}
               onToggleCreating={(creating) => {
-                setIsCreatingProject(creating)
                 if (creating) {
-                  setSelectedProject(null)
+                  navigate({ isCreatingProject: true, selectedProject: null })
+                } else {
+                  goBack()
                 }
               }}
               selectedProject={selectedProject}
-              onSelectProject={setSelectedProject}
+              onSelectProject={(project) => {
+                if (project) {
+                  navigate({
+                    selectedProject: project,
+                    isCreatingProject: false,
+                    selectedEnvironment: null,
+                    isCreatingEnvironment: false,
+                    isCreatingContainer: false,
+                  })
+                } else {
+                  goBack()
+                }
+              }}
+              selectedEnvironment={selectedEnvironment}
+              onSelectEnvironment={(env) => {
+                if (env) {
+                  navigate({
+                    selectedEnvironment: env,
+                    isCreatingContainer: false,
+                  })
+                } else {
+                  goBack()
+                }
+              }}
+              isCreatingEnvironment={isCreatingEnvironment}
+              onToggleCreatingEnvironment={(creating) => {
+                if (creating) {
+                  navigate({ isCreatingEnvironment: true })
+                } else {
+                  goBack()
+                }
+              }}
+              isCreatingContainer={isCreatingContainer}
+              onToggleCreatingContainer={(creating) => {
+                if (creating) {
+                  navigate({ isCreatingContainer: true })
+                } else {
+                  goBack()
+                }
+              }}
             />
           )}
 

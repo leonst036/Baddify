@@ -17,16 +17,35 @@ import { EnvironmentEmptyState } from '../components/EnvironmentEmptyState'
 import type { EnvVariable, ProjectEnvironment, ProjectItem } from '../types'
 import { ConfirmDialog } from '@/shared'
 
+import { useNavigation } from '@/navigation'
+
 export type { EnvVariable, ProjectEnvironment }
 
 export interface EnviromentsViewProps {
   project?: ProjectItem | null
   onBack?: () => void
+  selectedEnvironment?: ProjectEnvironment | null
+  onSelectEnvironment?: (env: ProjectEnvironment | null) => void
+  isCreating?: boolean
+  onToggleCreating?: (creating: boolean) => void
+  isCreatingContainer?: boolean
+  onToggleCreatingContainer?: (creating: boolean) => void
 }
 
-export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
+export function EnviromentsView({
+  project,
+  onBack,
+  selectedEnvironment: externalSelectedEnvironment,
+  onSelectEnvironment,
+  isCreating: externalIsCreating,
+  onToggleCreating,
+  isCreatingContainer,
+  onToggleCreatingContainer,
+}: EnviromentsViewProps) {
   const currentProjectName = project?.name || 'Default Project'
   const projectId = project?.uuid || project?.id || project?.name
+
+  const { registerBackInterceptor } = useNavigation()
 
   const [environments, setEnvironments] = useState<ProjectEnvironment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -38,11 +57,36 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
   // Variables modal state
   const [activeEnvForVars, setActiveEnvForVars] = useState<ProjectEnvironment | null>(null)
   // Create environment page state
-  const [isCreating, setIsCreating] = useState(false)
+  const [internalIsCreating, setInternalIsCreating] = useState(false)
   // Selected environment for ContainerView
-  const [selectedEnvironment, setSelectedEnvironment] = useState<ProjectEnvironment | null>(null)
+  const [internalSelectedEnvironment, setInternalSelectedEnvironment] = useState<ProjectEnvironment | null>(null)
   // Delete confirmation dialog state
   const [envIdToDelete, setEnvIdToDelete] = useState<string | null>(null)
+
+  const isCreating = externalIsCreating !== undefined ? externalIsCreating : internalIsCreating
+  const setIsCreating = onToggleCreating || setInternalIsCreating
+
+  const selectedEnvironment =
+    externalSelectedEnvironment !== undefined ? externalSelectedEnvironment : internalSelectedEnvironment
+  const setSelectedEnvironment = onSelectEnvironment || setInternalSelectedEnvironment
+
+  useEffect(() => {
+    if (activeEnvForVars) {
+      return registerBackInterceptor(() => {
+        setActiveEnvForVars(null)
+        return true
+      })
+    }
+  }, [activeEnvForVars, registerBackInterceptor])
+
+  useEffect(() => {
+    if (envIdToDelete) {
+      return registerBackInterceptor(() => {
+        setEnvIdToDelete(null)
+        return true
+      })
+    }
+  }, [envIdToDelete, registerBackInterceptor])
 
   const fetchEnvironments = useCallback(async (isManualRefresh = false) => {
     if (!projectId) {
@@ -229,6 +273,8 @@ export function EnviromentsView({ project, onBack }: EnviromentsViewProps) {
         project={project}
         environment={selectedEnvironment}
         onBack={() => setSelectedEnvironment(null)}
+        isCreating={isCreatingContainer}
+        onToggleCreating={onToggleCreatingContainer}
       />
     )
   }
