@@ -18,6 +18,7 @@ func NewRouter(dm *docker.Manager, cr *caddy.Router, db *database.MongoManager) 
 		"/",
 		"/api/login",
 		"/api/register",
+		"/api/containers/validate",
 	))
 
 	routes.RegisterRootRoutes(r)
@@ -27,6 +28,7 @@ func NewRouter(dm *docker.Manager, cr *caddy.Router, db *database.MongoManager) 
 	routes.RegisterHeartbeatRoutes(r)
 	routes.RegisterProjectRoutes(r, dm, db)
 	routes.RegisterEnviromentsRoutes(r, dm, cr, db)
+	routes.RegisterDockerRoutes(r, dm)
 
 	r.NotFound(routes.NotFoundHandler)
 

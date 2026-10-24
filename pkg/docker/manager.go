@@ -2,9 +2,11 @@ package docker
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
+	"github.com/distribution/reference"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
@@ -21,6 +23,40 @@ func NewManager() (*Manager, error) {
 		return nil, err
 	}
 	return &Manager{cli: cli}, nil
+}
+
+// ImageExists checks whether an image exists locally or in a remote registry.
+func (m *Manager) ImageExists(ctx context.Context, imgName string) (bool, string, error) {
+	if m == nil || m.cli == nil {
+		return false, "", fmt.Errorf("docker client is not initialized")
+	}
+
+	named, err := reference.ParseNormalizedNamed(imgName)
+	if err != nil {
+		return false, "", err
+	}
+	tagged := reference.TagNameOnly(named).String()
+
+	// Check local images
+	if _, _, err := m.cli.ImageInspectWithRaw(ctx, tagged); err == nil {
+		return true, "local", nil
+	}
+	if imgName != tagged {
+		if _, _, err := m.cli.ImageInspectWithRaw(ctx, imgName); err == nil {
+			return true, "local", nil
+		}
+	}
+
+	// Check remote registry
+	if _, err := m.cli.DistributionInspect(ctx, tagged, ""); err == nil {
+		return true, "remote", nil
+	} else if ctx.Err() != nil {
+		return false, "", ctx.Err()
+	} else if client.IsErrConnectionFailed(err) {
+		return false, "", err
+	}
+
+	return false, "", nil
 }
 
 func (m *Manager) PullImage(ctx context.Context, imgName string) error {

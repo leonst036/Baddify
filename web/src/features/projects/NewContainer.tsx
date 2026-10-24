@@ -101,6 +101,25 @@ export function NewContainer({
     )
   }
 
+  const handleValidateImage = async (image: string) => {
+    if (!image.trim()) {
+      setError('Docker image is required.')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/containers/validate?name=${encodeURIComponent(image)}`)
+      const data = await res.json()
+
+      if (!data.valid) {
+        alert(data.reason)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to validate image'
+      alert(msg)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
@@ -290,6 +309,7 @@ export function NewContainer({
               placeholder="e.g. nginx:alpine or redis:7-alpine"
               value={image}
               onChange={(e) => setImage(e.target.value)}
+              onBlur={(e) => handleValidateImage(e.target.value)}
               sx={inputSx}
             />
           </Box>
