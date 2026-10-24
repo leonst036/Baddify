@@ -12,7 +12,7 @@ import {
   DeleteOutlined as DeleteIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
-import type { ProjectEnvironment } from '../EnviromentsView'
+import type { ProjectEnvironment } from '../types'
 
 export interface EnvironmentCardProps {
   environment: ProjectEnvironment

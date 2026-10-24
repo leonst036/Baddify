@@ -11,7 +11,7 @@ import {
   Tag as TagIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
-import type { ProjectItem } from '../ProjectsView'
+import type { ProjectItem } from '../types'
 
 export interface ProjectCardProps {
   project: ProjectItem

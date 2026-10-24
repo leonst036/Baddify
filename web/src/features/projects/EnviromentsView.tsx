@@ -7,31 +7,16 @@ import {
 import { m3Tokens } from '@/theme/m3Tokens'
 import { Footer } from '@/components/common'
 import { getAuthHeaders } from '@/api/client'
-import type { ProjectItem } from './ProjectsView'
 import { CreateEnvironmentPage } from './CreateEnviroment'
 import type { NewEnvironmentData } from './CreateEnviroment'
 import { ContainerView } from './ContainerView'
-import {
-  EnvironmentHeader,
-  EnvironmentCard,
-  EnvironmentVariablesDialog,
-  EnvironmentEmptyState,
-} from './components'
+import { EnvironmentHeader } from './components/EnvironmentHeader'
+import { EnvironmentCard } from './components/EnvironmentCard'
+import { EnvironmentVariablesDialog } from './components/EnvironmentVariablesDialog'
+import { EnvironmentEmptyState } from './components/EnvironmentEmptyState'
+import type { EnvVariable, ProjectEnvironment, ProjectItem } from './types'
 
-export interface EnvVariable {
-  key: string
-  value: string
-  isSecret?: boolean
-}
-
-export interface ProjectEnvironment {
-  id: string
-  uuid?: string
-  name: string
-  updatedAt: string
-  variables: EnvVariable[]
-  description: string
-}
+export type { EnvVariable, ProjectEnvironment }
 
 export interface EnviromentsViewProps {
   project?: ProjectItem | null

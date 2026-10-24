@@ -13,21 +13,12 @@ import { Footer } from '@/components/common'
 import { NewProjects } from './NewProjects'
 import { EnviromentsView } from './EnviromentsView'
 import { getAuthHeaders } from '@/api/client'
-import {
-  ProjectsHeader,
-  ProjectCard,
-  ProjectEmptyState,
-} from './components'
+import { ProjectsHeader } from './components/ProjectsHeader'
+import { ProjectCard } from './components/ProjectCard'
+import { ProjectEmptyState } from './components/ProjectEmptyState'
+import type { ProjectItem } from './types'
 
-export interface ProjectItem {
-  id: string
-  uuid?: string
-  user_uuid?: string
-  name: string
-  description?: string
-  created_at?: string
-  updated_at?: string
-}
+export type { ProjectItem }
 
 interface ProjectsViewProps {
   isCreating?: boolean

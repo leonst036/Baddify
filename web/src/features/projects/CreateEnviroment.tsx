@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
 import { Footer } from '@/components/common'
-import type { EnvVariable } from './EnviromentsView'
+import type { EnvVariable } from './types'
 
 export interface NewEnvironmentData {
     name: string

@@ -21,7 +21,7 @@ import {
   DeleteOutlined as DeleteIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
-import type { EnvVariable, ProjectEnvironment } from '../EnviromentsView'
+import type { EnvVariable, ProjectEnvironment } from '../types'
 
 export interface EnvironmentVariablesDialogProps {
   open: boolean
