@@ -49,7 +49,16 @@ Backend:
 
 ## Installation
 
-Coming soon... (I guess with an install script)
+Right Now there's just this little dev script:
+
+```bash
+./dev/start-dev.sh
+```
+
+Your login should be:
+
+- Username: `admin`
+- Password: `password123`
 
 ## License
 

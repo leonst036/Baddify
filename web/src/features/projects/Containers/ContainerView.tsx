@@ -8,12 +8,14 @@ import {
 import { m3Tokens } from '@/theme/m3Tokens'
 import { Footer } from '@/components/common'
 import { apiFetch } from '@/api/client'
+import { useNavigation } from '@/navigation'
 import type { ContainerItem } from '@/api/types'
 import type { ProjectItem, ProjectEnvironment } from '../types'
 import { ContainerHeader } from '../components/ContainerHeader'
 import { ContainerCard } from '../components/ContainerCard'
 import { ContainerEmptyState } from '../components/ContainerEmptyState'
 import { NewContainer } from './NewContainer'
+import { ConfigureContainer } from './ConfigureContainer'
 
 export interface ContainerViewProps {
     project?: ProjectItem | null
@@ -35,9 +37,12 @@ export function ContainerView({
     const projectName = project?.name || 'Project'
     const envName = environment?.name || 'Environment'
 
+    const { registerBackInterceptor } = useNavigation()
+
     const [isCreatingInternal, setIsCreatingInternal] = useState(false)
     const isCreating = externalIsCreating !== undefined ? externalIsCreating : isCreatingInternal
     const setIsCreating = onToggleCreating || setIsCreatingInternal
+    const [configuringContainer, setConfiguringContainer] = useState<ContainerItem | null>(null)
     const [containers, setContainers] = useState<ContainerItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
@@ -45,6 +50,15 @@ export function ContainerView({
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState<'all' | 'running' | 'stopped'>('all')
     const [actionPendingId, setActionPendingId] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (configuringContainer) {
+            return registerBackInterceptor(() => {
+                setConfiguringContainer(null)
+                return true
+            })
+        }
+    }, [configuringContainer, registerBackInterceptor])
 
     const fetchContainers = useCallback(async () => {
         setIsRefreshing(true)
@@ -141,6 +155,24 @@ export function ContainerView({
         )
     }
 
+    if (configuringContainer) {
+        return (
+            <ConfigureContainer
+                container={configuringContainer}
+                project={project}
+                environment={environment}
+                onBack={() => {
+                    setConfiguringContainer(null)
+                    void fetchContainers()
+                }}
+                onSuccess={() => {
+                    setConfiguringContainer(null)
+                    void fetchContainers()
+                }}
+            />
+        )
+    }
+
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, width: '100%' }}>
             <ContainerHeader
@@ -201,6 +233,7 @@ export function ContainerView({
                             container={container}
                             isPending={actionPendingId === container.id}
                             onAction={handleAction}
+                            onConfigure={setConfiguringContainer}
                         />
                     ))}
                 </Box>

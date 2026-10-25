@@ -29,6 +29,9 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# Create default admin user if user database is empty
+go run ./dev/create_user.go -if-empty -u admin -p password123
+
 # Start Caddy reverse proxy
 echo "Starting Caddy..."
 caddy start --config Caddyfile

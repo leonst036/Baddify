@@ -13,6 +13,7 @@ import {
     RestartAlt as RestartIcon,
     Tag as TagIcon,
     LanOutlined as PortIcon,
+    SettingsOutlined as SettingsIcon,
 } from '@mui/icons-material'
 import { m3Tokens } from '@/theme/m3Tokens'
 import type { ContainerItem } from '@/api/types'
@@ -21,12 +22,14 @@ export interface ContainerCardProps {
     container: ContainerItem
     isPending: boolean
     onAction: (id: string, action: 'start' | 'stop' | 'restart') => void
+    onConfigure?: (container: ContainerItem) => void
 }
 
 export function ContainerCard({
     container,
     isPending,
     onAction,
+    onConfigure,
 }: ContainerCardProps) {
     const isRunning = container.state === 'running'
 
@@ -236,6 +239,28 @@ export function ContainerCard({
                                 <RestartIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                         </Tooltip>
+
+                        {onConfigure && (
+                            <Tooltip title="Configure container" arrow>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => onConfigure(container)}
+                                    sx={{
+                                        color: m3Tokens.onSurfaceVariant,
+                                        bgcolor: m3Tokens.surfaceContainerLow,
+                                        border: `1px solid ${m3Tokens.outlineVariant}`,
+                                        borderRadius: '6px',
+                                        '&:hover': {
+                                            color: m3Tokens.primary,
+                                            bgcolor: 'rgba(208, 188, 255, 0.08)',
+                                            borderColor: m3Tokens.primary,
+                                        },
+                                    }}
+                                >
+                                    <SettingsIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                     </>
                 )}
             </Box>

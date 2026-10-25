@@ -15,4 +15,7 @@ Development scripts and configurations.
 
   # Or interactively:
   ./create-user.sh
+
+  # Create default user only if database has no users:
+  ./create-user.sh -if-empty
   ```

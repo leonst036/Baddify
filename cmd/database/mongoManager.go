@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	ErrUserNotFound       = errors.New("user not found")
-	ErrUserAlreadyExists   = errors.New("user already exists")
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrDeploymentNotFound = errors.New("deployment not found")
-	ErrProjectNotFound    = errors.New("project not found")
-	ErrProjectAlreadyExists = errors.New("project already exists")
-	ErrEnvironmentNotFound    = errors.New("environment not found")
+	ErrUserNotFound             = errors.New("user not found")
+	ErrUserAlreadyExists        = errors.New("user already exists")
+	ErrInvalidCredentials       = errors.New("invalid credentials")
+	ErrDeploymentNotFound       = errors.New("deployment not found")
+	ErrProjectNotFound          = errors.New("project not found")
+	ErrProjectAlreadyExists     = errors.New("project already exists")
+	ErrEnvironmentNotFound      = errors.New("environment not found")
 	ErrEnvironmentAlreadyExists = errors.New("environment already exists")
 )
 
@@ -341,6 +341,10 @@ func (m *MongoManager) Collection(name string) *mongo.Collection {
 }
 
 // User methods
+
+func (m *MongoManager) CountUsers(ctx context.Context) (int64, error) {
+	return m.Users.CountDocuments(ctx, bson.M{})
+}
 
 func (m *MongoManager) RegisterUser(ctx context.Context, username, password string) (*User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -785,4 +789,3 @@ func (m *MongoManager) DeleteEnvironmentByUUID(ctx context.Context, envUUID stri
 	}
 	return nil
 }
-

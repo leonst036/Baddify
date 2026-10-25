@@ -92,3 +92,10 @@ func ValidateImageName(dm *docker.Manager) http.HandlerFunc {
 		})
 	}
 }
+
+func CreateContainer(dm *docker.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+	}
+}

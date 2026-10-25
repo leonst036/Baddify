@@ -22,12 +22,28 @@ func TestMongoManagerIntegration(t *testing.T) {
 	}()
 
 	ctx := context.Background()
+	initialCount, err := manager.CountUsers(ctx)
+	if err != nil {
+		t.Fatalf("CountUsers failed: %v", err)
+	}
+	if initialCount != 0 {
+		t.Errorf("Expected 0 users in fresh test database, got %d", initialCount)
+	}
+
 	testUser := fmt.Sprintf("testuser_%d", time.Now().UnixNano())
 	testPassword := "secret123"
 
 	user, err := manager.RegisterUser(ctx, testUser, testPassword)
 	if err != nil {
 		t.Fatalf("RegisterUser failed: %v", err)
+	}
+
+	afterCount, err := manager.CountUsers(ctx)
+	if err != nil {
+		t.Fatalf("CountUsers failed: %v", err)
+	}
+	if afterCount != 1 {
+		t.Errorf("Expected 1 user, got %d", afterCount)
 	}
 
 	if user.Username != testUser {

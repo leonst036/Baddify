@@ -18,6 +18,7 @@ func main() {
 	passFlag := flag.String("p", "", "Password")
 	uriFlag := flag.String("uri", "", "MongoDB URI (optional)")
 	dbFlag := flag.String("db", "", "Database name (optional)")
+	ifEmptyFlag := flag.Bool("if-empty", false, "Only create user if no users exist in database")
 	flag.Parse()
 
 	username := *userFlag
@@ -29,6 +30,15 @@ func main() {
 	}
 	if password == "" && len(args) > 1 {
 		password = args[1]
+	}
+
+	if *ifEmptyFlag {
+		if username == "" {
+			username = "admin"
+		}
+		if password == "" {
+			password = "password123"
+		}
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -72,9 +82,25 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	if *ifEmptyFlag {
+		count, err := db.CountUsers(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to check existing users: %v\n", err)
+			os.Exit(1)
+		}
+		if count > 0 {
+			fmt.Println("Users already exist in database, skipping default user creation.")
+			return
+		}
+	}
+
 	user, err := db.RegisterUser(ctx, username, password)
 	if err != nil {
 		if errors.Is(err, database.ErrUserAlreadyExists) {
+			if *ifEmptyFlag {
+				fmt.Printf("User '%s' already exists, skipping.\n", username)
+				return
+			}
 			fmt.Fprintf(os.Stderr, "Error: User '%s' already exists.\n", username)
 			os.Exit(1)
 		}
