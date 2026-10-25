@@ -85,7 +85,7 @@ GenericName=Cloud Deployment Platform
 Comment=Self-hosted cloud deployment control plane
 Exec=AppRun %u
 Icon=baddify
-Terminal=false
+Terminal=true
 Categories=Development;
 Keywords=cloud;docker;deploy;containers;caddy;coolify;
 StartupNotify=true
@@ -116,6 +116,26 @@ EOF
 cat <<'EOF' > "$APP_DIR/AppRun"
 #!/usr/bin/env bash
 set -e
+
+# Spawn terminal emulator if launched from GUI without interactive terminal
+if [ -z "$BADDIFY_TERMINAL_SPAWNED" ] && [ ! -t 1 ] && { [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; }; then
+  export BADDIFY_TERMINAL_SPAWNED=1
+  for term in kitty alacritty foot konsole gnome-terminal xfce4-terminal xterm; do
+    if command -v "$term" >/dev/null 2>&1; then
+      case "$term" in
+        kitty)
+          exec kitty --title "Baddify" "$0" "$@"
+          ;;
+        alacritty)
+          exec alacritty --title "Baddify" -e "$0" "$@"
+          ;;
+        *)
+          exec "$term" -e "$0" "$@"
+          ;;
+      esac
+    fi
+  done
+fi
 
 # Resolve AppDir path
 if [ -z "$APPDIR" ]; then
@@ -197,6 +217,11 @@ fi
 
 # Check MongoDB status
 is_mongo_ready() {
+  if command -v docker >/dev/null 2>&1 && docker ps --filter "name=^/mongodb$" --format '{{.Names}}' 2>/dev/null | grep -q "^mongodb$"; then
+    if docker exec mongodb mongosh --eval "db.adminCommand('ping')" --quiet >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
   (exec 3<>/dev/tcp/127.0.0.1/27017) 2>/dev/null && exec 3>&- && return 0
   if command -v nc >/dev/null 2>&1; then
     nc -z 127.0.0.1 27017 2>/dev/null && return 0
@@ -206,7 +231,7 @@ is_mongo_ready() {
 
 if ! is_mongo_ready; then
   echo "MongoDB is not reachable at 127.0.0.1:27017."
-  MONGO_CONTAINER=$(docker ps -a --filter "name=^/mongodb$" --format '{{.Names}}')
+  MONGO_CONTAINER=$(docker ps -a --filter "name=^/mongodb$" --format '{{.Names}}' 2>/dev/null || true)
   if [ "$MONGO_CONTAINER" = "mongodb" ]; then
     echo "Starting existing 'mongodb' container..."
     docker start mongodb >/dev/null
@@ -256,24 +281,51 @@ cleanup() {
     wait "$SERVER_PID" 2>/dev/null || true
   fi
   if [ "$CADDY_STARTED" -eq 1 ]; then
-    "$APPDIR/usr/bin/caddy" stop >/dev/null 2>&1 || true
+    "$APPDIR/usr/bin/caddy" stop --address 127.0.0.1:2019 >/dev/null 2>&1 || "$APPDIR/usr/bin/caddy" stop >/dev/null 2>&1 || true
+  fi
+  if [ -n "$BADDIFY_TERMINAL_SPAWNED" ]; then
+    echo ""
+    read -r -p "Press Enter to close..." 2>/dev/null || true
   fi
   exit 0
 }
 trap cleanup EXIT INT TERM
+
+# Validate server binary exists
+if [ ! -x "$APPDIR/usr/bin/baddify-server" ]; then
+  show_error "Baddify Error" "Server executable missing at $APPDIR/usr/bin/baddify-server"
+  exit 1
+fi
 
 # Start Baddify backend server
 echo "Starting Baddify server..."
 "$APPDIR/usr/bin/baddify-server" &
 SERVER_PID=$!
 
+sleep 0.3
+if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+  show_error "Baddify Error" "Baddify server process exited prematurely."
+  exit 1
+fi
+
 echo "Waiting for Baddify server on http://localhost:4000..."
+READY=0
 for i in $(seq 1 40); do
+  if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+    echo "Error: Baddify server stopped unexpectedly." >&2
+    exit 1
+  fi
   if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4000/ 2>/dev/null | grep -q "200"; then
+    READY=1
     break
   fi
   sleep 0.5
 done
+
+if [ "$READY" -ne 1 ]; then
+  show_error "Baddify Error" "Timed out waiting for Baddify server on http://localhost:4000."
+  exit 1
+fi
 
 echo ""
 echo "==========================================="
@@ -291,6 +343,7 @@ wait "$SERVER_PID" 2>/dev/null || wait
 EOF
 
 chmod +x "$APP_DIR/AppRun"
+chmod +x "$APP_DIR/usr/bin/"*
 
 # 9. Package AppImage using appimagetool
 APPIMAGE_TARGET="$OUTPUT_DIR/Baddify-x86_64.AppImage"
@@ -298,8 +351,11 @@ echo "Packaging AppImage..."
 ARCH=x86_64 "$APPIMAGETOOL" "$APP_DIR" "$APPIMAGE_TARGET"
 chmod +x "$APPIMAGE_TARGET"
 
-# Create symlink or copy at project root for convenience
-ln -sf "dist/Baddify-x86_64.AppImage" "$PROJECT_ROOT/Baddify-x86_64.AppImage"
+# Copy binary directly to project root for convenience
+rm -f "$PROJECT_ROOT/Baddify-x86_64.AppImage"
+cp -f "$APPIMAGE_TARGET" "$PROJECT_ROOT/Baddify-x86_64.AppImage"
+chmod +x "$PROJECT_ROOT/Baddify-x86_64.AppImage"
+sync
 
 echo ""
 echo "=== Build Complete ==="
