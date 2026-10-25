@@ -69,6 +69,12 @@ func RequireTokenIfNotProxied(exemptPaths ...string) func(http.Handler) http.Han
 				return
 			}
 
+			// Allow non-API static UI routes
+			if !strings.HasPrefix(path, "/api") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Allow requests forwarded through Caddy reverse proxy
 			if IsProxiedThroughCaddy(r) {
 				if tokenString := ExtractToken(r); tokenString != "" {

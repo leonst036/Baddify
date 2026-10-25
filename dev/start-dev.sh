@@ -3,6 +3,7 @@ set -e
 
 # Change to project root directory
 cd "$(dirname "$0")/.."
+export BADDIFY_DEV=1
 
 # Verify Docker daemon is running
 if ! docker info >/dev/null 2>&1; then

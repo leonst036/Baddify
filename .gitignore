@@ -1,0 +1,10 @@
+# Build artifacts and AppImage
+build/
+dist/
+*.AppImage
+server
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/

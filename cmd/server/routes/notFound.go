@@ -6,8 +6,20 @@ import (
 	"path/filepath"
 )
 
-// find404Html locates the web/src/404.html file across relative directories.
+// find404Html locates the 404.html file across distribution and relative directories.
 func find404Html() ([]byte, error) {
+	if webDist := GetWebDistDir(); webDist != "" {
+		candidates := []string{
+			filepath.Join(webDist, "src", "404.html"),
+			filepath.Join(webDist, "404.html"),
+		}
+		for _, p := range candidates {
+			if data, err := os.ReadFile(p); err == nil {
+				return data, nil
+			}
+		}
+	}
+
 	candidates := []string{
 		"web/src/404.html",
 		"../web/src/404.html",

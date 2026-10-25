@@ -47,15 +47,35 @@ Backend:
 - MongoDB
 
 
-## Installation
+## Installation & Running
 
-Right Now there's just this little dev script:
+### AppImage (Production Standalone)
+
+Build the standalone AppImage:
+
+```bash
+./scripts/build-appimage.sh
+```
+
+Run the AppImage:
+
+```bash
+./Baddify-x86_64.AppImage
+```
+
+Options:
+- `--no-browser`: Run Baddify in terminal without automatically opening the default web browser.
+- `--help`: Show usage and available flags.
+
+### Development Mode
+
+Run the local development stack:
 
 ```bash
 ./dev/start-dev.sh
 ```
 
-Your login should be:
+Default credentials:
 
 - Username: `admin`
 - Password: `password123`
